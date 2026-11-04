@@ -1,0 +1,263 @@
+<!-- templates/personnel/personnel_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1><i class="fas fa-users"></i> Personnel</h1>
+            <div>
+                <!-- Primary Action: New Meeting -->
+                <a href="{% url 'meeting-create' %}" class="btn btn-success btn-lg me-2">
+                    <i class="fas fa-calendar-plus"></i> New Meeting
+                </a>
+                <!-- Secondary Action: Add Personnel (optional) -->
+                <a href="{% url 'personnel-add' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-user-plus"></i> Add Personnel
+                </a>
+                <!-- Bulk Upload -->
+                <a href="#" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                    <i class="fas fa-upload"></i> Bulk Upload
+                </a>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Personnel Type</label>
+                        <select name="type" class="form-select">
+                            <option value="">All</option>
+                            <option value="interpreter" {% if filters.type == 'interpreter' %}selected{% endif %}>Interpreter</option>
+                            <option value="translator" {% if filters.type == 'translator' %}selected{% endif %}>Translator</option>
+                            <option value="both" {% if filters.type == 'both' %}selected{% endif %}>Both</option>
+                            <option value="icoordination" {% if filters.type == 'icoordination' %}selected{% endif %}>Interpretation Coordination</option>
+                            <option value="Tcoordination" {% if filters.type == 'Tcoordination' %}selected{% endif %}>Translation Coordination</option>
+                            <option value="adminassistant" {% if filters.type == 'adminassistant' %}selected{% endif %}>Administrative Assistant</option>
+                            <option value="documentworkflowofficer" {% if filters.type == 'documentworkflowofficer' %}selected{% endif %}>Document Workflow Officer</option>
+                            <option value="conferencesystemtechnitians" {% if filters.type == 'conferencesystemtechnitians' %}selected{% endif %}>Conference System Technicians</option>
+                            <option value="documentationdistributionanandcirculation" {% if filters.type == 'documentationdistributionanandcirculation' %}selected{% endif %}>Documentation Distribution & Circulation</option>
+                            <option value="documentationreproductionandprinting" {% if filters.type == 'documentationreproductionandprinting' %}selected{% endif %}>Documentation Reproduction & Printing</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Document Status</label>
+                        <select name="doc_status" class="form-select">
+                            <option value="">All</option>
+                            <option value="complete" {% if filters.doc_status == 'complete' %}selected{% endif %}>Complete</option>
+                            <option value="incomplete" {% if filters.doc_status == 'incomplete' %}selected{% endif %}>Incomplete</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Name, Email, Nationality..." value="{{ filters.search }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i> Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Personnel Table -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Nationality</th>
+                                <th>Departure</th>
+                                <th>Documents</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person in page_obj %}
+                            <tr>
+                                <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+                                <td>
+                                    <strong>{{ person.full_name }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ person.personnel_type|yesno:'primary,info' }}">
+                                        {{ person.get_personnel_type_display }}
+                                    </span>
+                                </td>
+                                <td>{{ person.nationality }}</td>
+                                <td>{{ person.city_departure }}</td>
+                                <td>
+                                    {% with doc_status=person.get_document_status %}
+                                    <div class="d-flex gap-1">
+                                        {% for doc, info in doc_status.items %}
+                                        <i class="fas fa-{{ info.uploaded|yesno:'check,times' }} text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                           title="{{ doc }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                        {% endfor %}
+                                    </div>
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ person.documents_complete|yesno:'success,warning' }}">
+                                        {{ person.documents_complete|yesno:'Complete,Incomplete' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <!-- EDIT BUTTON -->
+                                        <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload Documents">
+                                            <i class="fas fa-upload"></i>
+                                        </a>
+                                        <button class="btn btn-primary" onclick="sendReminder({{ person.id }})" title="Send Reminder">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                        <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment">
+                                            <i class="fas fa-calculator"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">No personnel found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">&laquo; First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                
+                <div class="text-muted small">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} entries
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Upload Modal -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Upload Personnel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'bulk-upload' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Excel File (.xlsx)</label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                        <div class="form-text">
+                            File should contain columns: First Name, Last Name, Nationality, 
+                            Designation/Assignment, City of Departure
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Meeting</label>
+                        <select name="meeting" class="form-select" required>
+                            <option value="">Select Meeting</option>
+                            {% for meeting in meetings %}
+                            <option value="{{ meeting.id }}">{{ meeting.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function sendReminder(personnelId) {
+        if (confirm('Send document reminder to this personnel?')) {
+            fetch(`/api/personnel/${personnelId}/send-reminder/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Reminder sent successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error sending reminder: ' + error);
+            });
+        }
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

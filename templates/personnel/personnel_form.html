@@ -1,0 +1,1009 @@
+<!-- templates/personnel/personnel_form.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --au-green: #1B5E20;
+        --au-green-light: #319400;
+        --au-gold: #F7C608;
+        --au-red: #952038;
+    }
+    .card-header-au {
+        background-color: var(--au-green);
+        color: #fff;
+        border-bottom: 3px solid var(--au-gold);
+    }
+    .form-section-title {
+        color: var(--au-green);
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: .5rem;
+    }
+    .form-section-title i {
+        color: var(--au-gold);
+        margin-right: .4rem;
+    }
+    .required-mark {
+        color: var(--au-red);
+        font-weight: 700;
+    }
+    .photo-preview {
+        max-width: 180px;
+        max-height: 180px;
+        object-fit: cover;
+        border: 3px solid var(--au-green);
+        border-radius: 50%;
+        padding: 3px;
+    }
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--au-green);
+        box-shadow: 0 0 0 .2rem rgba(27, 94, 32, 0.2);
+    }
+    .btn-au-primary {
+        background-color: var(--au-green);
+        border-color: var(--au-green);
+        color: #fff;
+    }
+    .btn-au-primary:hover {
+        background-color: #154a19;
+        border-color: #154a19;
+        color: #fff;
+    }
+    .hint-box {
+        background: #e8f5e9;
+        border-left: 4px solid var(--au-green);
+        padding: .5rem .75rem;
+        border-radius: .25rem;
+        font-size: .875rem;
+    }
+    /* Flash highlight for auto-filled fields */
+    .autofilled {
+        background-color: #fff8d6 !important;
+        transition: background-color .3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-9 mx-auto">
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="card shadow-sm">
+                <div class="card-header card-header-au">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-{% if is_edit %}edit{% else %}plus{% endif %}"></i>
+                        {% if is_edit %}
+                            Edit Personnel: {{ personnel.full_name }}
+                        {% else %}
+                            Add New Personnel
+                        {% endif %}
+                    </h4>
+                </div>
+
+                <div class="card-body">
+                    <form method="post" novalidate enctype="multipart/form-data" id="personnelForm">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- ============================================================ -->
+                        <!-- PERSONAL INFORMATION                                        -->
+                        <!-- ============================================================ -->
+                        <h5 class="form-section-title">
+                            <i class="fas fa-id-card"></i> Personal Information
+                        </h5>
+                        <hr>
+
+                        {% if picker and not is_edit %}
+                        <!-- ============================================================ -->
+                        <!-- MASTER LIST PICKER (ADD ONLY)                               -->
+                        <!-- ============================================================ -->
+                        <div class="hint-box mb-3">
+                            <i class="fas fa-info-circle"></i>
+                            Select a <strong>First Name</strong> below — the personal details
+                            will fill in automatically. You can still edit any field before saving.
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ picker.first_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-list text-au-green"></i>
+                                    Pick from Master List
+                                </label>
+                                <div class="d-flex align-items-center">
+                                    {{ picker.first_name }}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-success ms-2"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#masterPersonnelModal">
+                                        <i class="fas fa-plus"></i> Add to Master List
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block">
+                                    Choose a name to auto-fill the fields below.
+                                </small>
+                            </div>
+                        </div>
+                        <hr>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    First Name <span class="required-mark">*</span>
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.first_name.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.middle_name.id_for_label }}" class="form-label">
+                                    Middle Name
+                                </label>
+                                {{ form.middle_name }}
+                                {% if form.middle_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.middle_name.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    Last Name <span class="required-mark">*</span>
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.last_name.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
+                                {{ form.gender }}
+                                {% if form.gender.errors %}
+                                    <div class="text-danger small mt-1">{{ form.gender.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
+                                {{ form.date_of_birth }}
+                                {% if form.date_of_birth.errors %}
+                                    <div class="text-danger small mt-1">{{ form.date_of_birth.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.nationality.id_for_label }}" class="form-label">
+                                    Nationality <span class="required-mark">*</span>
+                                </label>
+                                {{ form.nationality }}
+                                {% if form.nationality.errors %}
+                                    <div class="text-danger small mt-1">{{ form.nationality.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    Email <span class="required-mark">*</span>
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                    Phone <span class="required-mark">*</span>
+                                </label>
+                                {{ form.phone }}
+                                {% if form.phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.phone.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.alternative_phone.id_for_label }}" class="form-label">Alternative Phone</label>
+                                {{ form.alternative_phone }}
+                                {% if form.alternative_phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.alternative_phone.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.city_departure.id_for_label }}" class="form-label">
+                                    City of Departure <span class="required-mark">*</span>
+                                </label>
+                                {{ form.city_departure }}
+                                {% if form.city_departure.errors %}
+                                    <div class="text-danger small mt-1">{{ form.city_departure.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================================ -->
+                        <!-- PHOTO                                                       -->
+                        <!-- ============================================================ -->
+                        <h5 class="form-section-title">
+                            <i class="fas fa-camera"></i> Photo
+                        </h5>
+                        <hr>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="{{ form.photo.id_for_label }}" class="form-label">Passport Photo</label>
+                                    {{ form.photo }}
+                                    <div class="form-text">
+                                        JPG, PNG, or GIF — max 5MB.
+                                        {% if is_edit and personnel.photo %}
+                                            Leave empty to keep the current photo.
+                                        {% endif %}
+                                    </div>
+                                    {% if form.photo.errors %}
+                                        <div class="text-danger small mt-1">{{ form.photo.errors|striptags }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                {% if personnel and personnel.photo %}
+                                    <img src="{{ personnel.photo.url }}"
+                                         alt="Current photo"
+                                         class="photo-preview mb-2"
+                                         id="photoPreview">
+                                    <div class="small text-muted">
+                                        <a href="{{ personnel.photo.url }}" target="_blank">View full size</a>
+                                    </div>
+                                {% else %}
+                                    <img src=""
+                                         alt="Photo preview"
+                                         class="photo-preview mb-2 d-none"
+                                         id="photoPreview">
+                                    <div class="small text-muted">No photo yet</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================================ -->
+                        <!-- PROFESSIONAL CLASSIFICATION                                  -->
+                        <!-- ============================================================ -->
+                        <h5 class="form-section-title">
+                            <i class="fas fa-briefcase"></i> Professional Classification
+                        </h5>
+                        <hr>
+
+                        <div class="hint-box mb-3">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Profession</strong> defines what the person does.
+                            <strong>Employment basis</strong> defines how they're engaged.
+                            Together they determine which documents are required for payment and travel.
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.profession.id_for_label }}" class="form-label">
+                                    Profession <span class="required-mark">*</span>
+                                </label>
+                                {{ form.profession }}
+                                {% if form.profession.errors %}
+                                    <div class="text-danger small mt-1">{{ form.profession.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.employment_basis.id_for_label }}" class="form-label">
+                                    Employment Basis <span class="required-mark">*</span>
+                                </label>
+                                {{ form.employment_basis }}
+                                {% if form.employment_basis.errors %}
+                                    <div class="text-danger small mt-1">{{ form.employment_basis.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.payment_method.id_for_label }}" class="form-label">
+                                    Payment Method <span class="required-mark">*</span>
+                                </label>
+                                {{ form.payment_method }}
+                                {% if form.payment_method.errors %}
+                                    <div class="text-danger small mt-1">{{ form.payment_method.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.designation.id_for_label }}" class="form-label">Designation</label>
+                                {{ form.designation }}
+                                <small class="text-muted d-block">
+                                    Auto-filled from Profession. You can override it.
+                                </small>
+                                {% if form.designation.errors %}
+                                    <div class="text-danger small mt-1">{{ form.designation.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================================ -->
+                        <!-- LANGUAGES                                                   -->
+                        <!-- ============================================================ -->
+                        <h5 class="form-section-title">
+                            <i class="fas fa-language"></i> Languages Spoken
+                        </h5>
+                        <hr>
+
+                        <div class="mb-3">
+                            <div class="d-flex flex-wrap gap-3 p-3 border rounded">
+                                {% for checkbox in form.languages %}
+                                    <div class="form-check">
+                                        {{ checkbox.tag }}
+                                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                            {{ checkbox.choice_label }}
+                                        </label>
+                                    </div>
+                                {% empty %}
+                                    <span class="text-muted small">
+                                        No language options configured on the form.
+                                    </span>
+                                {% endfor %}
+                            </div>
+                            {% if form.languages.errors %}
+                                <div class="text-danger small mt-1">{{ form.languages.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ============================================================ -->
+                        <!-- MEETING ASSIGNMENT                                          -->
+                        <!-- ============================================================ -->
+                        <h5 class="form-section-title">
+                            <i class="fas fa-calendar-alt"></i> Meeting Assignment
+                        </h5>
+                        <hr>
+
+                        <div class="row">
+                            <!-- ============================================================ -->
+                            <!-- TRAVEL / DSA                                                -->
+                            <!-- ============================================================ -->
+                            <h5 class="form-section-title">
+                                <i class="fas fa-plane"></i> Travel / DSA
+                            </h5>
+                            <hr>
+
+                            <div class="hint-box mb-3">
+                                <i class="fas fa-info-circle"></i>
+                                DSA is only owed when the person travels outside Addis Ababa / HQ to service the meeting.
+                                Tick the box below only if this person actually travelled.
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.travelled_abroad }}
+                                        <label class="form-check-label ms-2" for="{{ form.travelled_abroad.id_for_label }}">
+                                            <strong>Travelled abroad for this meeting</strong>
+                                        </label>
+                                    </div>
+                                    {% if form.travelled_abroad.errors %}
+                                        <div class="text-danger small mt-1">{{ form.travelled_abroad.errors|striptags }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.travel_notes.id_for_label }}" class="form-label">Travel notes (optional)</label>
+                                    {{ form.travel_notes }}
+                                </div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.meeting.id_for_label }}" class="form-label">Meeting</label>
+                                <div class="d-flex align-items-center">
+                                    {{ form.meeting }}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-success ms-2"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#meetingModal">
+                                        <i class="fas fa-plus"></i> Add Meeting
+                                    </button>
+                                </div>
+                                {% if form.meeting.errors %}
+                                    <div class="text-danger small mt-1">{{ form.meeting.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================================ -->
+                        <!-- EMERGENCY CONTACT                                           -->
+                        <!-- ============================================================ -->
+                        <h5 class="form-section-title">
+                            <i class="fas fa-phone-alt"></i> Emergency Contact
+                        </h5>
+                        <hr>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.emergency_contact_name.id_for_label }}" class="form-label">Contact Name</label>
+                                {{ form.emergency_contact_name }}
+                                {% if form.emergency_contact_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.emergency_contact_name.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.emergency_contact_phone.id_for_label }}" class="form-label">Contact Phone</label>
+                                {{ form.emergency_contact_phone }}
+                                {% if form.emergency_contact_phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.emergency_contact_phone.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================================ -->
+                        <!-- NOTES                                                       -->
+                        <!-- ============================================================ -->
+                        <h5 class="form-section-title">
+                            <i class="fas fa-sticky-note"></i> Notes
+                        </h5>
+                        <hr>
+
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger small mt-1">{{ form.notes.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================================ -->
+                        <!-- ACTIONS                                                     -->
+                        <!-- ============================================================ -->
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <button type="submit" class="btn btn-au-primary">
+                                <i class="fas fa-save"></i>
+                                {% if is_edit %}Update{% else %}Save{% endif %}
+                            </button>
+                            <a href="{% url 'personnel-list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            {% if is_edit %}
+                                <a href="{% url 'personnel-detail' personnel.id %}" class="btn btn-info">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ADD MEETING MODAL                                            -->
+<!-- ============================================================ -->
+<div class="modal fade" id="meetingModal" tabindex="-1" aria-labelledby="meetingModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: var(--au-green); color: #fff;">
+                <h5 class="modal-title" id="meetingModalLabel">Add New Meeting</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="meetingForm">
+                    <div class="mb-3">
+                        <label for="meetingName" class="form-label">Meeting Name <span class="required-mark">*</span></label>
+                        <input type="text" class="form-control" id="meetingName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="meetingLocation" class="form-label">Location <span class="required-mark">*</span></label>
+                        <select class="form-select" id="meetingLocation" required>
+                            <option value="">Select location...</option>
+                            {% for country in african_countries %}
+                                <option value="{{ country }}">{{ country }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="meetingStartDate" class="form-label">Start Date <span class="required-mark">*</span></label>
+                            <input type="date" class="form-control" id="meetingStartDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="meetingEndDate" class="form-label">End Date <span class="required-mark">*</span></label>
+                            <input type="date" class="form-control" id="meetingEndDate" required>
+                        </div>
+                    </div>
+                    <div id="meetingError" class="text-danger" style="display:none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-au-primary" id="saveMeetingBtn">Create Meeting</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ADD MASTER PERSONNEL MODAL                                   -->
+<!-- ============================================================ -->
+<div class="modal fade" id="masterPersonnelModal" tabindex="-1"
+     aria-labelledby="masterPersonnelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: var(--au-green); color: #fff;">
+                <h5 class="modal-title" id="masterPersonnelModalLabel">
+                    <i class="fas fa-user-plus me-1"></i>
+                    Add Person to Master List
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="masterPersonnelForm">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="mpFirstName" class="form-label">
+                                First Name <span class="required-mark">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="mpFirstName" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="mpMiddleName" class="form-label">Middle Name</label>
+                            <input type="text" class="form-control" id="mpMiddleName">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="mpLastName" class="form-label">
+                                Last Name <span class="required-mark">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="mpLastName" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="mpGender" class="form-label">Gender</label>
+                            <select class="form-select" id="mpGender">
+                                <option value="">-- Select --</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="mpDateOfBirth" class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" id="mpDateOfBirth">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="mpNationality" class="form-label">
+                                Nationality <span class="required-mark">*</span>
+                            </label>
+                            <select class="form-select" id="mpNationality" required>
+                                <option value="">-- Select Nationality --</option>
+                                {% for code, label in african_countries %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="mpEmail" class="form-label">
+                                Email <span class="required-mark">*</span>
+                            </label>
+                            <input type="email" class="form-control" id="mpEmail" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="mpPhone" class="form-label">
+                                Phone <span class="required-mark">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="mpPhone" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="mpAlternatePhone" class="form-label">Alternative Phone</label>
+                            <input type="text" class="form-control" id="mpAlternatePhone">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="mpCityDeparture" class="form-label">City of Departure</label>
+                            {% comment %} <select class="form-select" id="mpCityDeparture">
+                                <option value="">-- Select City of Departure --</option>
+                                {% comment %} {% for code, label in african_country_capitals %} 
+                                {% for code, label in african_capitals %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select> {% endcomment %}
+                            <select class="form-select" id="mpCityDeparture">
+                                <option value="">-- Select City of Departure --</option>
+                                {% for code, label in african_capitals %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="masterPersonnelError"
+                         class="alert alert-danger"
+                         style="display:none;"></div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-au-primary" id="saveMasterPersonnelBtn">
+                    <i class="fas fa-save me-1"></i> Save to Master List
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ============================================================
+// MASTER LIST LOOKUP + AUTO-FILL HELPERS (global)
+// ============================================================
+{% if picker and not is_edit %}
+window.MASTER_LOOKUP = {{ master_lookup_json|safe|default:"{}" }};
+{% else %}
+window.MASTER_LOOKUP = {};
+{% endif %}
+
+function flash(el) {
+    if (!el) return;
+    el.classList.add('autofilled');
+    setTimeout(function () { el.classList.remove('autofilled'); }, 1200);
+}
+
+function setValue(el, value) {
+    if (!el || value === undefined || value === null) return;
+    if (el.tagName === 'SELECT') {
+        const opt = Array.from(el.options).find(function (o) { return o.value === value; });
+        if (opt) {
+            el.value = value;
+            flash(el);
+        }
+        return;
+    }
+    el.value = value;
+    flash(el);
+}
+
+function applyMasterRecord(id) {
+    const data = window.MASTER_LOOKUP[id];
+    if (!data) return;
+
+    setValue(document.getElementById('id_first_name'),        data.first_name);
+    setValue(document.getElementById('id_middle_name'),       data.middle_name);
+    setValue(document.getElementById('id_last_name'),         data.last_name);
+    setValue(document.getElementById('id_gender'),            data.gender);
+    setValue(document.getElementById('id_nationality'),       data.nationality);
+    setValue(document.getElementById('id_email'),             data.email);
+    setValue(document.getElementById('id_phone'),             data.phone);
+    setValue(document.getElementById('id_alternative_phone'), data.alternative_phone);
+    setValue(document.getElementById('id_date_of_birth'),     data.date_of_birth);
+    setValue(document.getElementById('id_city_departure'),    data.city_departure);
+}
+
+// Wire the picker dropdown
+{% if picker and not is_edit %}
+const masterPicker = document.getElementById('id_master_first_name');
+if (masterPicker) {
+    masterPicker.addEventListener('change', function () {
+        applyMasterRecord(this.value);
+    });
+}
+{% endif %}
+
+    // ============================================================
+    // PROFESSION → DESIGNATION AUTO-FILL
+    // ============================================================
+    const professionSelect = document.querySelector('#id_profession');
+    const designationInput = document.querySelector('#id_designation');
+
+    const designationMap = {
+        'interpreter': 'INTERPRETER',
+        'translator': 'TRANSLATOR',
+        'icoordination': 'INTERPRETATION COORDINATION',
+        'Tcoordination': 'TRANSLATION COORDINATION',
+        'adminassistant': 'ADMINISTRATIVE ASSISTANT',
+        'documentworkflowofficer': 'DOCUMENT WORKFLOW OFFICER',
+        'conferencesystemtechnitians': 'CONFERENCE SYSTEM TECHNICIAN',
+        'documentationdistributionandcirculation': 'DOCUMENTATION DISTRIBUTION & CIRCULATION',
+        'documentationreproductionandprinting': 'DOCUMENTATION REPRODUCTION & PRINTING',
+        'other': 'OTHER'
+    };
+
+    function updateDesignation() {
+        if (!professionSelect || !designationInput) return;
+        const v = professionSelect.value;
+        if (v && Object.prototype.hasOwnProperty.call(designationMap, v)) {
+            designationInput.value = designationMap[v];
+        } else if (v) {
+            designationInput.value = v.replace(/([A-Z])/g, ' $1').toUpperCase().trim();
+        }
+    }
+
+    if (professionSelect) {
+        professionSelect.addEventListener('change', updateDesignation);
+        if (!designationInput || !designationInput.value) {
+            updateDesignation();
+        }
+    }
+
+    // ============================================================
+    // PHOTO PREVIEW
+    // ============================================================
+    const photoInput = document.getElementById('id_photo');
+    const photoPreview = document.getElementById('photoPreview');
+
+    if (photoInput && photoPreview) {
+        photoInput.addEventListener('change', function () {
+            const file = this.files && this.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                photoPreview.src = e.target.result;
+                photoPreview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ============================================================
+    // MEETING CREATION (AJAX)
+    // ============================================================
+    const saveBtn = document.getElementById('saveMeetingBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const name = document.getElementById('meetingName').value.trim();
+            const location = document.getElementById('meetingLocation').value;
+            const start_date = document.getElementById('meetingStartDate').value;
+            const end_date = document.getElementById('meetingEndDate').value;
+            const errorDiv = document.getElementById('meetingError');
+
+            errorDiv.style.display = 'none';
+
+            if (!name || !location || !start_date || !end_date) {
+                errorDiv.textContent = 'All fields are required.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            const csrf = csrfInput ? csrfInput.value : '';
+
+            fetch('/api/meetings/create/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrf,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    location: location,
+                    start_date: start_date,
+                    end_date: end_date
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    errorDiv.textContent = data.error;
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const select = document.getElementById('id_meeting');
+                if (select) {
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.textContent = `${data.name} - ${data.location}`;
+                    select.appendChild(option);
+                    select.value = data.id;
+                }
+
+                const modalEl = document.getElementById('meetingModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                document.getElementById('meetingForm').reset();
+            })
+            .catch(error => {
+                console.error('Meeting create error:', error);
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Create Meeting';
+            });
+        });
+    }
+
+    const meetingModalEl = document.getElementById('meetingModal');
+    if (meetingModalEl) {
+        meetingModalEl.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('meetingForm').reset();
+            document.getElementById('meetingError').style.display = 'none';
+        });
+    }
+
+    // ============================================================
+// MASTER PERSONNEL CREATION (AJAX)
+// ============================================================
+const saveMasterBtn = document.getElementById('saveMasterPersonnelBtn');
+if (saveMasterBtn) {
+    saveMasterBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        const firstName   = document.getElementById('mpFirstName').value.trim();
+        const middleName  = document.getElementById('mpMiddleName').value.trim();
+        const lastName    = document.getElementById('mpLastName').value.trim();
+        const gender      = document.getElementById('mpGender').value;
+        const dateOfBirth = document.getElementById('mpDateOfBirth').value;
+        const nationality = document.getElementById('mpNationality').value.trim();
+        const email       = document.getElementById('mpEmail').value.trim();
+        const phone       = document.getElementById('mpPhone').value.trim();
+        const altPhone    = document.getElementById('mpAlternatePhone').value.trim();
+        const cityDep     = document.getElementById('mpCityDeparture').value.trim();
+
+        const errorDiv = document.getElementById('masterPersonnelError');
+        errorDiv.style.display = 'none';
+        errorDiv.innerHTML = '';
+
+        // Client-side quick checks
+        const missing = [];
+        if (!firstName)   missing.push('First Name');
+        if (!lastName)    missing.push('Last Name');
+        if (!nationality) missing.push('Nationality');
+        if (!email)       missing.push('Email');
+        if (!phone)       missing.push('Phone');
+
+        if (missing.length) {
+            errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Missing: '
+                                 + missing.join(', ');
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        const payload = {
+            first_name:      firstName,
+            middle_name:     middleName,
+            last_name:       lastName,
+            gender:          gender,
+            date_of_birth:   dateOfBirth || null,
+            nationality:     nationality,
+            email:           email,
+            phone:           phone,
+            alternate_phone: altPhone,
+            city_departure:  cityDep,
+        };
+
+        saveMasterBtn.disabled = true;
+        saveMasterBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrf = csrfInput ? csrfInput.value : '';
+
+        fetch('/api/master-personnel/create/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrf,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return { ok: response.ok, data: data };
+            });
+        })
+        .then(function (res) {
+            if (!res.ok || res.data.error) {
+                // Show field-level errors if present
+                if (res.data.errors) {
+                    const lines = [];
+                    Object.keys(res.data.errors).forEach(function (field) {
+                        res.data.errors[field].forEach(function (msg) {
+                            lines.push(field + ': ' + msg);
+                        });
+                    });
+                    errorDiv.innerHTML = lines.join('<br>');
+                } else {
+                    errorDiv.textContent = res.data.error || 'Failed to save.';
+                }
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const rec = res.data;
+
+            // 1. Append the new option to the master dropdown
+            const select = document.getElementById('id_master_first_name');
+            if (select) {
+                const opt = document.createElement('option');
+                opt.value = rec.id;
+                opt.textContent = rec.label;
+                select.appendChild(opt);
+                select.value = rec.id;
+            }
+
+            // 2. Auto-fill the main form fields from the new record
+            if (typeof applyMasterRecord === 'function' && typeof window.MASTER_LOOKUP === 'object') {
+                // applyMasterRecord reads from MASTER_LOOKUP — add the new entry first
+                MASTER_LOOKUP[String(rec.id)] = {
+                    first_name:        rec.first_name,
+                    middle_name:       rec.middle_name,
+                    last_name:         rec.last_name,
+                    gender:            rec.gender,
+                    nationality:       rec.nationality,
+                    email:             rec.email,
+                    phone:             rec.phone,
+                    alternative_phone: rec.alternate_phone,
+                    date_of_birth:     rec.date_of_birth,
+                    city_departure:    rec.city_departure,
+                };
+                applyMasterRecord(String(rec.id));
+            }
+
+            // 3. Close the modal & reset the form
+            const modalEl = document.getElementById('masterPersonnelModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            document.getElementById('masterPersonnelForm').reset();
+        })
+        .catch(function (error) {
+            console.error('Master personnel create error:', error);
+            errorDiv.textContent = 'An error occurred. Please try again.';
+            errorDiv.style.display = 'block';
+        })
+        .finally(function () {
+            saveMasterBtn.disabled = false;
+            saveMasterBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save to Master List';
+        });
+    });
+
+    // Reset modal state when it's closed
+    const masterModalEl = document.getElementById('masterPersonnelModal');
+    if (masterModalEl) {
+        masterModalEl.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('masterPersonnelForm').reset();
+            document.getElementById('masterPersonnelError').style.display = 'none';
+            document.getElementById('masterPersonnelError').innerHTML = '';
+        });
+    }
+}
+});
+</script>
+{% endblock %}

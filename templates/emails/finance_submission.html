@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color:#333; line-height:1.6;">
+<div style="max-width:600px; margin:0 auto; padding:24px;">
+
+  <h3 style="color:#1B5E20;">Your Documents Have Been Submitted to Finance</h3>
+
+  <p>Dear <strong>{{ personnel.full_name }}</strong>,</p>
+
+  <p>
+    This is to inform you that your documents have been submitted to the
+    <strong>Finance Department</strong> for processing.
+  </p>
+
+  <table style="border-collapse:collapse; margin:16px 0;">
+    <tr>
+      <td style="padding:4px 12px 4px 0;"><strong>Name:</strong></td>
+      <td>{{ personnel.full_name }}</td>
+    </tr>
+    <tr>
+      <td style="padding:4px 12px 4px 0;"><strong>Role:</strong></td>
+      <td>{{ personnel.get_personnel_type_display }}</td>
+    </tr>
+    {% if meeting %}
+    <tr>
+      <td style="padding:4px 12px 4px 0;"><strong>Meeting:</strong></td>
+      <td>{{ meeting.name }}</td>
+    </tr>
+    <tr>
+      <td style="padding:4px 12px 4px 0;"><strong>Location:</strong></td>
+      <td>{{ meeting.location }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td style="padding:4px 12px 4px 0;"><strong>Submitted on:</strong></td>
+      <td>{{ now|date:"F j, Y, H:i" }} UTC</td>
+    </tr>
+  </table>
+
+  <p>
+    You will receive a follow-up notification once the payment has been
+    processed. If you have any questions, please contact the Finance team.
+  </p>
+
+  <p>
+    Best regards,<br>
+    <strong>DCMP Management</strong>
+  </p>
+
+</div>
+</body>
+</html>

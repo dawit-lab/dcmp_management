@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color:#333;">
+<div style="max-width:600px;margin:0 auto;padding:24px;">
+  <h3 style="color:#1B5E20;">Documents Complete</h3>
+  {% if for_admin %}
+    <p><strong>{{ personnel.full_name }}</strong> has uploaded all required documents for:</p>
+  {% else %}
+    <p>Dear {{ personnel.full_name }},</p>
+    <p>You have uploaded all required documents for:</p>
+  {% endif %}
+  <p style="background:#f5f5f5;padding:12px;border-radius:4px;">
+    <strong>{{ meeting.name }}</strong>
+  </p>
+  {% if for_admin %}
+    <p>Please log in to review and verify them.</p>
+  {% else %}
+    <p>Your file is now under review. We will notify you if anything else is needed.</p>
+  {% endif %}
+  <p>DCMP Management System</p>
+</div>
+</body>
+</html>

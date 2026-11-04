@@ -1,0 +1,125 @@
+<!-- templates/personnel/merge_history.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-history"></i> Document Merge History
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center bg-primary text-white">
+                                <div class="card-body">
+                                    <h1>{{ total_merges }}</h1>
+                                    <p>Total Merges</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center bg-success text-white">
+                                <div class="card-body">
+                                    <h1>{{ completed }}</h1>
+                                    <p>Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center bg-danger text-white">
+                                <div class="card-body">
+                                    <h1>{{ failed }}</h1>
+                                    <p>Failed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center bg-warning text-dark">
+                                <div class="card-body">
+                                    <h1>{{ total_merges|add:completed|add:failed|slice:"0:1"|default:"0" }}</h1>
+                                    <p>Pending</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Merge History Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Personnel</th>
+                                    <th>Format</th>
+                                    <th>Status</th>
+                                    <th>Documents</th>
+                                    <th>File Size</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for merge in merges %}
+                                <tr>
+                                    <td>{{ merge.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'personnel-detail' merge.personnel.id %}">
+                                            {{ merge.personnel.full_name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ merge.get_format_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if merge.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif merge.status == 'failed' %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ merge.total_documents }}</td>
+                                    <td>
+                                        {% if merge.file_size %}
+                                            {{ merge.file_size|filesizeformat }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if merge.status == 'completed' and merge.output_file %}
+                                            <a href="{{ merge.output_file.url }}" class="btn btn-sm btn-primary" target="_blank">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        {% elif merge.status == 'failed' %}
+                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" 
+                                                    title="{{ merge.error_message }}">
+                                                <i class="fas fa-exclamation-circle"></i> Error
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        <i class="fas fa-info-circle"></i> No merge history available
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

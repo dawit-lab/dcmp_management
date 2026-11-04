@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5 text-center">
+  <h3>No active meeting assignment</h3>
+  <p>Your account is not currently assigned to any meeting. Please contact the administrator.</p>
+  <a href="{% url 'logout' %}" class="btn btn-outline-secondary">Log out</a>
+</div>
+{% endblock %}

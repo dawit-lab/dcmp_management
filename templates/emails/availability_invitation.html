@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color:#333; line-height:1.6;">
+<div style="max-width:600px;margin:0 auto;padding:24px;">
+
+  <h2 style="color:#1B5E20;">Availability Request</h2>
+
+  <p>Dear {{ personnel.full_name }},</p>
+
+  <p>
+    You are being considered to serve as
+    <strong>{{ personnel.get_personnel_type_display }}</strong>
+    for the following meeting:
+  </p>
+
+  <p style="background:#f5f5f5;padding:12px;border-left:4px solid #1B5E20;border-radius:4px;">
+    <strong>{{ meeting.name }}</strong><br>
+    {{ meeting.location }}<br>
+    {{ meeting.start_date }} – {{ meeting.end_date }}
+  </p>
+
+  <p>Please confirm your availability by clicking one of the buttons below:</p>
+
+  <p style="text-align:center;margin:32px 0;">
+    <a href="{{ yes_url }}"
+       style="background:#1B5E20;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin-right:12px;">
+      Yes, I am available
+    </a>
+    <a href="{{ no_url }}"
+       style="background:#b71c1c;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;">
+      No, I am not available
+    </a>
+  </p>
+
+  <p style="font-size:13px;color:#666;">
+    If the buttons don't work, paste this link into your browser:<br>
+    Yes: <a href="{{ yes_url }}">{{ yes_url }}</a><br>
+    No: <a href="{{ no_url }}">{{ no_url }}</a>
+  </p>
+
+  <p>Kind regards,<br>DCMP Management System</p>
+
+</div>
+</body>
+</html>

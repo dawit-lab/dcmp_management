@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 style="color:#1B5E20;">
+                <i class="fas fa-calendar-alt me-2"></i>
+                {{ meeting.name }}
+            </h2>
+            <p class="text-muted mb-0">
+                <i class="fas fa-map-marker-alt me-1"></i> {{ meeting.location }}
+                <span class="mx-2">|</span>
+                <i class="fas fa-calendar-day me-1"></i>
+                {{ meeting.start_date|date:"M d, Y" }} – {{ meeting.end_date|date:"M d, Y" }}
+            </p>
+            <p class="text-muted small mb-0">
+                Availability workflow — send invitations, review responses, approve participants.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'personnel-dashboard-table' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Action buttons -->
+    <div class="mb-4">
+        <form method="post"
+              action="{% url 'request-availability-bulk' meeting.id %}"
+              style="display:inline;"
+              onsubmit="return confirm('Send availability invitations to ALL personnel in this meeting who have not yet been invited?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-paper-plane me-1"></i> Send invitations to all pending
+            </button>
+        </form>
+        <a href="{% url 'personnel-list' %}?meeting={{ meeting.id }}"
+           class="btn btn-outline-secondary">
+            <i class="fas fa-users me-1"></i> View meeting personnel
+        </a>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center" style="border-left:4px solid #6c757d;">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-1">Pending</h5>
+                    <h2 class="mb-0">{{ pending|length }}</h2>
+                    <small class="text-muted">Awaiting response</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="border-left:4px solid #F7C608;">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-1">Available</h5>
+                    <h2 class="mb-0">{{ available|length }}</h2>
+                    <small class="text-muted">Awaiting approval</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="border-left:4px solid #1B5E20;">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-1">Approved</h5>
+                    <h2 class="mb-0">{{ approved|length }}</h2>
+                    <small class="text-muted">Credentials sent</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="border-left:4px solid #952038;">
+                <div class="card-body">
+                    <h5 class="card-title text-muted mb-1">Declined</h5>
+                    <h2 class="mb-0">{{ declined|length }}</h2>
+                    <small class="text-muted">Not available</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PENDING -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-hourglass-half me-2"></i>
+                Pending response ({{ pending|length }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if pending %}
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Email</th>
+                        <th>Invitation sent</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ar in pending %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'personnel-detail' ar.personnel.id %}">
+                                <strong>{{ ar.personnel.full_name }}</strong>
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">
+                                {{ ar.personnel.get_personnel_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ ar.personnel.email }}</td>
+                        <td>{{ ar.invitation_sent_at|date:"M d, Y H:i"|default:"—" }}</td>
+                        <td class="text-end">
+                            <form method="post"
+                                  action="{% url 'request-availability' ar.personnel.id %}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Resend invitation to {{ ar.personnel.email }}?');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-redo me-1"></i> Resend
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-3 mb-0">No pending invitations.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- AVAILABLE — awaiting approval -->
+    <div class="card mb-4">
+        <div class="card-header" style="background-color:#F7C608; color:#1B1B1B;">
+            <h5 class="mb-0">
+                <i class="fas fa-check me-2"></i>
+                Available — awaiting approval ({{ available|length }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if available %}
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Email</th>
+                        <th>Responded</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ar in available %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'personnel-detail' ar.personnel.id %}">
+                                <strong>{{ ar.personnel.full_name }}</strong>
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">
+                                {{ ar.personnel.get_personnel_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ ar.personnel.email }}</td>
+                        <td>{{ ar.responded_at|date:"M d, Y H:i"|default:"—" }}</td>
+                        <td class="text-end">
+                            <form method="post"
+                                  action="{% url 'approve-availability' ar.id %}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Approve {{ ar.personnel.full_name }} and send credentials?');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-success">
+                                    <i class="fas fa-check-circle me-1"></i> Approve
+                                </button>
+                            </form>
+                            <form method="post"
+                                  action="{% url 'decline-availability' ar.id %}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Decline {{ ar.personnel.full_name }}?');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-times-circle me-1"></i> Decline
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-3 mb-0">No responses yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- APPROVED -->
+    <div class="card mb-4">
+        <div class="card-header text-white" style="background-color:#1B5E20;">
+            <h5 class="mb-0">
+                <i class="fas fa-user-check me-2"></i>
+                Approved ({{ approved|length }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if approved %}
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Username</th>
+                        <th>Approved on</th>
+                        <th>Approved by</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ar in approved %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'personnel-detail' ar.personnel.id %}">
+                                <strong>{{ ar.personnel.full_name }}</strong>
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">
+                                {{ ar.personnel.get_personnel_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <code>{{ ar.assignment.username_for_meeting|default:"—" }}</code>
+                        </td>
+                        <td>{{ ar.approved_at|date:"M d, Y H:i"|default:"—" }}</td>
+                        <td>{{ ar.approved_by.get_full_name|default:ar.approved_by.username|default:"—" }}</td>
+                        <td class="text-end">
+                            <form method="post"
+                                  action="{% url 'demand-availability' ar.personnel.id %}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Resend credentials to {{ ar.personnel.email }}?');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-redo me-1"></i> Resend Credentials
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-3 mb-0">No approved participants yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- DECLINED -->
+    <div class="card mb-4">
+        <div class="card-header text-white" style="background-color:#952038;">
+            <h5 class="mb-0">
+                <i class="fas fa-user-times me-2"></i>
+                Declined ({{ declined|length }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if declined %}
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Email</th>
+                        <th>Responded</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ar in declined %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'personnel-detail' ar.personnel.id %}">
+                                <strong>{{ ar.personnel.full_name }}</strong>
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-danger">
+                                {{ ar.personnel.get_personnel_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ ar.personnel.email }}</td>
+                        <td>{{ ar.responded_at|date:"M d, Y H:i"|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-3 mb-0">No declined participants.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

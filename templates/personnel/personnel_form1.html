@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-user-plus"></i> 
+                    {% if form.instance.pk %}Edit{% else %}Add{% endif %} Personnel
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- ========== PERSONAL INFORMATION ========== -->
+                    <h4 class="mt-2">Personal Information</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.first_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.middle_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.last_name|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.gender|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.date_of_birth|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.nationality|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.email|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.phone|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.alternative_phone|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.city_departure|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <!-- ========== PROFESSIONAL INFORMATION ========== -->
+                    <h4 class="mt-3">Professional Information</h4>
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.personnel_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.designation|as_crispy_field }}
+                            <small class="text-muted">Auto‑filled based on personnel type</small>
+                        </div>
+                    </div>
+                    
+                    <!-- ========== LANGUAGES (Checkboxes) ========== -->
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <label class="form-label"><strong>Languages Spoken</strong></label>
+                            <div class="d-flex flex-wrap gap-3 p-2 border rounded">
+                                {% for value, label in form.languages.field.choices %}
+                                <div class="form-check">
+                                    <input type="checkbox" 
+                                           name="languages" 
+                                           value="{{ value }}" 
+                                           id="lang_{{ value }}"
+                                           class="form-check-input"
+                                           {% if value in form.languages.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="lang_{{ value }}">
+                                        {{ label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">Select all languages the personnel speaks</small>
+                        </div>
+                    </div>
+                    
+                    <!-- ========== MEETING SELECT + ADD BUTTON ========== -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="id_meeting" class="form-label">Meeting</label>
+                                <div class="d-flex align-items-center">
+                                    {{ form.meeting }}   <!-- form-select-lg class added in widget -->
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary ms-2" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#meetingModal">
+                                        <i class="fas fa-plus"></i> Add Meeting
+                                    </button>
+                                </div>
+                                <small class="text-muted">Select an existing meeting or create a new one</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ========== EMERGENCY CONTACT ========== -->
+                    <h4 class="mt-3">Emergency Contact</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.emergency_contact_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.emergency_contact_phone|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <!-- ========== NOTES ========== -->
+                    <div class="row">
+                        <div class="col-12">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <!-- ========== FORM ACTIONS ========== -->
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <a href="{% url 'personnel-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MODAL: ADD MEETING ========== -->
+<div class="modal fade" id="meetingModal" tabindex="-1" aria-labelledby="meetingModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="meetingModalLabel">Add New Meeting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="meetingForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="meetingName" class="form-label">Meeting Name*</label>
+                        <input type="text" class="form-control" id="meetingName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="meetingLocation" class="form-label">Location*</label>
+                        <input type="text" class="form-control" id="meetingLocation" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="meetingStartDate" class="form-label">Start Date*</label>
+                            <input type="date" class="form-control" id="meetingStartDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="meetingEndDate" class="form-label">End Date*</label>
+                            <input type="date" class="form-control" id="meetingEndDate" required>
+                        </div>
+                    </div>
+                    <div id="meetingError" class="text-danger mt-2" style="display:none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveMeetingBtn">Create Meeting</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== JAVASCRIPT ========== -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Auto-fill designation based on personnel type - COMPLETE MAPPING
+        const personnelTypeSelect = document.querySelector('#id_personnel_type');
+        const designationInput = document.querySelector('#id_designation');
+        
+        function updateDesignation() {
+            const selectedType = personnelTypeSelect ? personnelTypeSelect.value : '';
+            const designationMap = {
+                'interpreter': 'INTERPRETER',
+                'translator': 'TRANSLATOR',
+                'icoordination': 'INTERPRETATION COORDINATION',
+                'Tcoordination': 'TRANSLATION COORDINATION',
+                'adminassistant': 'ADMINISTRATIVE ASSISTANT',
+                'documentworkflowofficer': 'DOCUMENT WORKFLOW OFFICER',
+                'conferencesystemtechnitians': 'CONFERENCE SYSTEM TECHNICIAN',
+                'documentationdistributionanandcirculation': 'DOCUMENTATION DISTRIBUTION & CIRCULATION',
+                'documentationreproductionandprinting': 'DOCUMENTATION REPRODUCTION & PRINTING',
+                'both': 'INTERPRETER / TRANSLATOR'
+            };
+            
+            if (designationInput) {
+                // If the type exists in the map, use it; otherwise use a fallback
+                if (selectedType && designationMap.hasOwnProperty(selectedType)) {
+                    designationInput.value = designationMap[selectedType];
+                } else if (selectedType) {
+                    // Fallback: convert the personnel_type to a readable format
+                    designationInput.value = selectedType.replace(/([A-Z])/g, ' $1').toUpperCase().trim();
+                } else {
+                    designationInput.value = '';
+                }
+            }
+        }
+        
+        if (personnelTypeSelect) {
+            personnelTypeSelect.addEventListener('change', updateDesignation);
+            // Set initial value on page load
+            updateDesignation();
+        }
+        
+        // 2. Meeting creation modal logic (your existing code)
+        const saveBtn = document.getElementById('saveMeetingBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function(e) {
+                // ... your existing meeting creation code ...
+            });
+        }
+    });
+    </script>
+{% endblock %}

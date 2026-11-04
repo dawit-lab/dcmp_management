@@ -1,0 +1,58 @@
+<!-- templates/emails/completion_notification.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #28a745; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f8f9fa; }
+        .success-box { background: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 15px 0; }
+        .meeting-details { background: #e2e3e5; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✅ Documents Complete</h2>
+        </div>
+        <div class="content">
+            <p>Dear <strong>{{ personnel.full_name }}</strong>,</p>
+            
+            <p>Congratulations! All your required documents have been successfully submitted.</p>
+            
+            <div class="success-box">
+                <strong>✅ All Documents Received:</strong>
+                <ul>
+                    <li>✓ Passport Copy</li>
+                    <li>✓ Letter of Assignment (LOA)</li>
+                    <li>✓ Boarding Pass</li>
+                    <li>✓ Payment Claim Form</li>
+                </ul>
+            </div>
+            
+            <div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <strong>📌 Next Steps:</strong>
+                <p>Your complete file has been forwarded to the Finance Department for payment processing.</p>
+                <p>You will receive payment notification within 3-5 business days.</p>
+            </div>
+            
+            <div class="meeting-details">
+                <strong>📧 Meeting Details:</strong><br>
+                Event: {{ meeting.name }}<br>
+                Location: {{ meeting.location }}<br>
+                Dates: {{ meeting.start_date }} to {{ meeting.end_date }}
+            </div>
+            
+            <p style="margin-top: 20px;">
+                Best regards,<br>
+                <strong>DCMP Team</strong>
+            </p>
+        </div>
+        <div class="footer">
+            This is an automated message. Please do not reply to this email.
+        </div>
+    </div>
+</body>
+</html>

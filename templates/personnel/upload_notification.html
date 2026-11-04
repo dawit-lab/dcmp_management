@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #333;">
+  <h3 style="color: #1B5E20;">Document Uploaded</h3>
+  <p><strong>{{ personnel.full_name }}</strong> has uploaded a document.</p>
+  <ul>
+    <li><strong>Document type:</strong> {{ document.get_document_type_display }}</li>
+    <li><strong>Meeting:</strong> {{ meeting.name }}</li>
+    <li><strong>Uploaded at:</strong> {{ document.upload_date }}</li>
+    <li><strong>File name:</strong> {{ document.file_name }}</li>
+  </ul>
+  <p>Please log in to the admin dashboard to review and verify it.</p>
+  <p>DCMP Management System</p>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!-- templates/personnel/dashboard.html -->
+
+{% extends 'base.html' %}
+{% load personnel_extras %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+        <hr>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Total Personnel</h6>
+                        <h2 class="card-text">{{ total_personnel }}</h2>
+                    </div>
+                    <div>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ total_interpreters }} Interpreters | {{ total_translators }} Translators</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Complete Profiles</h6>
+                        <h2 class="card-text">{{ complete_profiles }}</h2>
+                    </div>
+                    <div>
+                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ complete_profiles|percentage:total_personnel }}% Complete</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Incomplete Profiles</h6>
+                        <h2 class="card-text">{{ incomplete_profiles }}</h2>
+                    </div>
+                    <div>
+                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>Need documents</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Pending Payments</h6>
+                        <h2 class="card-text">{{ pending_payments }}</h2>
+                    </div>
+                    <div>
+                        <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ submitted_payments }} Submitted to Finance</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Personnel Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="personnelChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Document Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="documentChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="row g-4 mt-2">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Personnel</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for person in recent_personnel %}
+                    <a href="{% url 'personnel-detail' person.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ person.full_name }}</strong>
+                                <span class="badge bg-info">{{ person.get_personnel_type_display }}</span>
+                            </div>
+                            <small>{{ person.created_at|timesince }} ago</small>
+                        </div>
+                        <div class="mt-1">
+                            <span class="badge bg-{{ person.documents_complete|yesno:'success,warning' }}">
+                                {{ person.documents_complete|yesno:'Complete,Incomplete' }}
+                            </span>
+                            <small>{{ person.nationality }}</small>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <p class="text-muted">No recent personnel</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Activities</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for comm in recent_communications %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ comm.personnel.full_name }}</strong>
+                                <span class="badge bg-secondary">{{ comm.get_communication_type_display }}</span>
+                            </div>
+                            <small>{{ comm.sent_date|timesince }} ago</small>
+                        </div>
+                        <div class="mt-1">
+                            <span class="badge bg-{{ comm.status|yesno:'success,warning' }}">
+                                {{ comm.status }}
+                            </span>
+                            <small>{{ comm.subject }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent activities</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Personnel Chart
+    const ctx1 = document.getElementById('personnelChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Interpreters', 'Translators'],
+            datasets: [{
+                data: [{{ total_interpreters }}, {{ total_translators }}],
+                backgroundColor: ['#4e73df', '#1cc88a'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Document Chart
+    const ctx2 = document.getElementById('documentChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: ['Complete', 'Incomplete'],
+            datasets: [{
+                label: 'Personnel',
+                data: [{{ complete_profiles }}, {{ incomplete_profiles }}],
+                backgroundColor: ['#1cc88a', '#e74a3b'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

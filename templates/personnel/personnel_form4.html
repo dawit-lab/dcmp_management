@@ -1,0 +1,463 @@
+<!-- templates/personnel/personnel_form.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-user-{% if is_edit %}edit{% else %}plus{% endif %}"></i> 
+                    {% if is_edit %}
+                        Edit Personnel: {{ personnel.full_name }}
+                    {% else %}
+                        Add New Personnel
+                    {% endif %}
+                </h3>
+            </div>
+            <div class="card-body">
+                <!-- CRITICAL: enctype="multipart/form-data" -->
+                <form method="post" novalidate enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- Personal Information -->
+                    <h4 class="mt-2">Personal Information</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name *</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger">{{ form.first_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.middle_name.id_for_label }}" class="form-label">Middle Name</label>
+                                {{ form.middle_name }}
+                                {% if form.middle_name.errors %}
+                                    <div class="text-danger">{{ form.middle_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name *</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger">{{ form.last_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
+                                {{ form.gender }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
+                                {{ form.date_of_birth }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.nationality.id_for_label }}" class="form-label">Nationality *</label>
+                                {{ form.nationality }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email *</label>
+                                {{ form.email }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label">Phone *</label>
+                                {{ form.phone }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.alternative_phone.id_for_label }}" class="form-label">Alternative Phone</label>
+                                {{ form.alternative_phone }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.city_departure.id_for_label }}" class="form-label">City of Departure *</label>
+                                {{ form.city_departure }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ========== PHOTO UPLOAD - MANUAL ========== -->
+                    <h4 class="mt-3">Photo</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="id_photo" class="form-label">Passport Photo</label>
+                                <!-- Use manual file input, NOT crispy -->
+                                <input type="file" 
+                                       name="photo" 
+                                       id="id_photo" 
+                                       class="form-control" 
+                                       accept="image/*">
+                                <div class="form-text">Upload a passport-style photo (JPG, PNG, GIF - max 5MB)</div>
+                                
+                                {% if personnel and personnel.photo %}
+                                <div class="mt-3">
+                                    <label class="fw-bold">Current Photo:</label>
+                                    <div class="mt-2">
+                                        <img src="{{ personnel.photo.url }}" alt="Personnel Photo" 
+                                             style="max-width: 150px; max-height: 150px; border-radius: 10px; border: 2px solid #007bff; padding: 3px;">
+                                        <br>
+                                        <small class="text-muted">
+                                            <a href="{{ personnel.photo.url }}" target="_blank">View full size</a>
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Professional Information -->
+                    <h4 class="mt-3">Professional Information</h4>
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.personnel_type.id_for_label }}" class="form-label">Personnel Type *</label>
+                                {{ form.personnel_type }}
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="translator_type_container" style="display: none;">
+                            <div class="mb-3">
+                                <label for="{{ form.translator_type.id_for_label }}" class="form-label">Translator Type</label>
+                                {{ form.translator_type }}
+                                <small class="text-muted d-block">
+                                    <strong>Freelance:</strong> LOA, Payment Claim, Invoice<br>
+                                    <strong>Staff:</strong> Passport, Boarding Pass, Ticket
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="interpreter_type_container" style="display: none;">
+                            <div class="mb-3">
+                                <label for="{{ form.interpreter_type.id_for_label }}" class="form-label">Interpreter Type</label>
+                                {{ form.interpreter_type }}
+                                <small class="text-muted d-block">
+                                    <strong>Freelance:</strong> Passport, LOA, Payment Claim, Ticket, Ticket Receipt, Boarding Pass<br>
+                                    <strong>Staff:</strong> Passport, LOA, Payment Claim, Boarding Pass
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.designation.id_for_label }}" class="form-label">Designation</label>
+                                {{ form.designation }}
+                                <small class="text-muted">Auto‑filled based on personnel type</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Languages -->
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <label class="form-label"><strong>Languages Spoken</strong></label>
+                            <div class="d-flex flex-wrap gap-3 p-2 border rounded">
+                                {% for value, label in form.languages.field.choices %}
+                                <div class="form-check">
+                                    <input type="checkbox" 
+                                           name="languages" 
+                                           value="{{ value }}" 
+                                           id="lang_{{ value }}"
+                                           class="form-check-input"
+                                           {% if value in form.languages.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="lang_{{ value }}">
+                                        {{ label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">Select all languages the personnel speaks</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Meeting -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="{{ form.meeting.id_for_label }}" class="form-label">Meeting</label>
+                                <div class="d-flex align-items-center">
+                                    {{ form.meeting }}
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary ms-2" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#meetingModal">
+                                        <i class="fas fa-plus"></i> Add Meeting
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Emergency Contact -->
+                    <h4 class="mt-3">Emergency Contact</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.emergency_contact_name.id_for_label }}" class="form-label">Emergency Contact Name</label>
+                                {{ form.emergency_contact_name }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.emergency_contact_phone.id_for_label }}" class="form-label">Emergency Contact Phone</label>
+                                {{ form.emergency_contact_phone }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                {{ form.notes }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 
+                            {% if is_edit %}Update{% else %}Save{% endif %}
+                        </button>
+                        <a href="{% url 'personnel-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        {% if is_edit %}
+                        <a href="{% url 'personnel-detail' personnel.id %}" class="btn btn-info">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Meeting Modal -->
+<div class="modal fade" id="meetingModal" tabindex="-1" aria-labelledby="meetingModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="meetingModalLabel">Add New Meeting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="meetingForm">
+                    <div class="mb-3">
+                        <label for="meetingName" class="form-label">Meeting Name*</label>
+                        <input type="text" class="form-control" id="meetingName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="meetingLocation" class="form-label">Location*</label>
+                        <select class="form-select" id="meetingLocation" required>
+                            <option value="">Select location...</option>
+                            {% for country in african_countries %}
+                            <option value="{{ country }}">{{ country }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="meetingStartDate" class="form-label">Start Date*</label>
+                            <input type="date" class="form-control" id="meetingStartDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="meetingEndDate" class="form-label">End Date*</label>
+                            <input type="date" class="form-control" id="meetingEndDate" required>
+                        </div>
+                    </div>
+                    <div id="meetingError" class="text-danger mt-2" style="display:none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveMeetingBtn">Create Meeting</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const personnelTypeSelect = document.querySelector('#id_personnel_type');
+    const designationInput = document.querySelector('#id_designation');
+    const translatorTypeContainer = document.querySelector('#translator_type_container');
+    const translatorTypeSelect = document.querySelector('#id_translator_type');
+    const interpreterTypeContainer = document.querySelector('#interpreter_type_container');
+    const interpreterTypeSelect = document.querySelector('#id_interpreter_type');
+    
+    function updateDesignation() {
+        const selectedType = personnelTypeSelect ? personnelTypeSelect.value : '';
+        const designationMap = {
+            'interpreter': 'INTERPRETER',
+            'translator': 'TRANSLATOR',
+            'icoordination': 'INTERPRETATION COORDINATION',
+            'Tcoordination': 'TRANSLATION COORDINATION',
+            'adminassistant': 'ADMINISTRATIVE ASSISTANT',
+            'documentworkflowofficer': 'DOCUMENT WORKFLOW OFFICER',
+            'conferencesystemtechnitians': 'CONFERENCE SYSTEM TECHNICIAN',
+            'documentationdistributionanandcirculation': 'DOCUMENTATION DISTRIBUTION & CIRCULATION',
+            'documentationreproductionandprinting': 'DOCUMENTATION REPRODUCTION & PRINTING',
+            'both': 'INTERPRETER / TRANSLATOR'
+        };
+        
+        if (designationInput) {
+            if (selectedType && designationMap.hasOwnProperty(selectedType)) {
+                designationInput.value = designationMap[selectedType];
+            } else if (selectedType) {
+                designationInput.value = selectedType.replace(/([A-Z])/g, ' $1').toUpperCase().trim();
+            } else {
+                designationInput.value = '';
+            }
+        }
+    }
+    
+    function toggleTypeFields() {
+        if (personnelTypeSelect) {
+            const selectedType = personnelTypeSelect.value;
+            
+            translatorTypeContainer.style.display = 'none';
+            interpreterTypeContainer.style.display = 'none';
+            
+            if (selectedType === 'translator') {
+                translatorTypeContainer.style.display = 'block';
+                translatorTypeSelect.required = true;
+            } else if (selectedType === 'interpreter') {
+                interpreterTypeContainer.style.display = 'block';
+                interpreterTypeSelect.required = true;
+            } else {
+                translatorTypeSelect.value = '';
+                interpreterTypeSelect.value = '';
+                translatorTypeSelect.required = false;
+                interpreterTypeSelect.required = false;
+            }
+        }
+    }
+    
+    if (personnelTypeSelect) {
+        personnelTypeSelect.addEventListener('change', function() {
+            updateDesignation();
+            toggleTypeFields();
+        });
+        
+        updateDesignation();
+        toggleTypeFields();
+    }
+    
+    // Meeting creation
+    const saveBtn = document.getElementById('saveMeetingBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('meetingName').value.trim();
+            const location = document.getElementById('meetingLocation').value;
+            const start_date = document.getElementById('meetingStartDate').value;
+            const end_date = document.getElementById('meetingEndDate').value;
+            const errorDiv = document.getElementById('meetingError');
+            
+            errorDiv.style.display = 'none';
+            
+            if (!name || !location || !start_date || !end_date) {
+                errorDiv.textContent = 'All fields are required.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = 'Creating...';
+            
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            
+            fetch('/api/meetings/create/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken ? csrfToken.value : '',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    name: name, 
+                    location: location, 
+                    start_date: start_date, 
+                    end_date: end_date 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    errorDiv.textContent = data.error;
+                    errorDiv.style.display = 'block';
+                } else {
+                    const select = document.getElementById('id_meeting');
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.textContent = `${data.name} - ${data.location}`;
+                    select.appendChild(option);
+                    select.value = data.id;
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('meetingModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    document.getElementById('meetingForm').reset();
+                }
+            })
+            .catch(error => {
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Create Meeting';
+            });
+        });
+    }
+    
+    const meetingModal = document.getElementById('meetingModal');
+    if (meetingModal) {
+        meetingModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('meetingForm').reset();
+            document.getElementById('meetingError').style.display = 'none';
+        });
+    }
+});
+</script>
+{% endblock %}

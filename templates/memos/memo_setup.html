@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h1><i class="fas fa-cogs"></i> Memo System Setup</h1>
+    <p class="text-muted">Create initial data for the memo system</p>
+    
+    <div class="row">
+        <!-- Department Form -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-building"></i> Add Department</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Department Name</label>
+                            <input type="text" name="department_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Department Code</label>
+                            <input type="text" name="department_code" class="form-control" placeholder="e.g., HR" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus"></i> Add Department
+                        </button>
+                    </form>
+                    <hr>
+                    <h6>Existing Departments:</h6>
+                    <ul class="list-unstyled">
+                        {% for dept in departments %}
+                        <li><span class="badge bg-secondary">{{ dept.code }}</span> {{ dept.name }}</li>
+                        {% empty %}
+                        <li class="text-muted">No departments yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Memo Type Form -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-tag"></i> Add Memo Type</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Memo Type Name</label>
+                            <input type="text" name="memo_type_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Memo Type Code</label>
+                            <input type="text" name="memo_type_code" class="form-control" placeholder="e.g., OFFICIAL" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-plus"></i> Add Memo Type
+                        </button>
+                    </form>
+                    <hr>
+                    <h6>Existing Types:</h6>
+                    <ul class="list-unstyled">
+                        {% for type in memo_types %}
+                        <li><span class="badge bg-secondary">{{ type.code }}</span> {{ type.name }}</li>
+                        {% empty %}
+                        <li class="text-muted">No memo types yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category Form -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-folder"></i> Add Category</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Category Name</label>
+                            <input type="text" name="category_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category Type</label>
+                            <select name="category_type" class="form-select" required>
+                                <option value="">Select type...</option>
+                                {% for value, label in category_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-info w-100 text-white">
+                            <i class="fas fa-plus"></i> Add Category
+                        </button>
+                    </form>
+                    <hr>
+                    <h6>Existing Categories:</h6>
+                    <ul class="list-unstyled">
+                        {% for category in categories %}
+                        <li><span class="badge bg-secondary">{{ category.category_type }}</span> {{ category.name }}</li>
+                        {% empty %}
+                        <li class="text-muted">No categories yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{% url 'memo-create' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-right"></i> Go to Create Memo
+        </a>
+        <a href="{% url 'memo-list' %}" class="btn btn-secondary">
+            <i class="fas fa-list"></i> View All Memos
+        </a>
+    </div>
+</div>
+{% endblock %}

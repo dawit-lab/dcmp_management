@@ -1,0 +1,185 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'dashboard' %}">
+            <i class="fas fa-microphone"></i> DCMP Management
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <!-- Dashboard -->
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
+                       href="{% url 'dashboard' %}">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                </li>
+                
+                <!-- Personnel Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {% if 'personnel' in request.path %}active{% endif %}" 
+                       href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-users"></i> Personnel
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'personnel-list' %}">
+                                <i class="fas fa-list"></i> Personnel List
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'personnel-dashboard-table' %}">
+                                <i class="fas fa-table"></i> Personnel Dashboard
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'personnel-add' %}">
+                                <i class="fas fa-user-plus"></i> Add Personnel
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'meeting-create' %}">
+                                <i class="fas fa-calendar-plus"></i> New Meeting
+                            </a>
+                        </li>
+
+                        <hr>
+                        <li class="nav-item">
+                            <a class="nav-link"
+                            href="{% url 'expense-list' %}"
+                            style="color: #000000 !important;">💵 Payment Settings</a>
+                </li>
+
+                <!-- 👇 ADD THIS 👇 -->
+                <li class="nav-item">
+                    <a class="nav-link"
+                       href="{% url 'expense-list' %}"
+                       style="color: #000000 !important;">
+                        💼 Personnel Expenses
+                    </a>
+                </li>
+                    </ul>
+                </li>
+
+                <!-- Memos Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {% if 'memos' in request.path %}active{% endif %}" 
+                       href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-envelope"></i> Memos
+                        {% if pending_memos_count > 0 %}
+                        <span class="badge bg-danger ms-1">{{ pending_memos_count }}</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'memo-list' %}">
+                                <i class="fas fa-list"></i> All Memos
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'memo-dashboard' %}">
+                                <i class="fas fa-chart-pie"></i> Memo Dashboard
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'memo-create' %}">
+                                <i class="fas fa-plus"></i> New Memo
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'memo-list' %}?status=pending">
+                                <i class="fas fa-clock"></i> Pending Memos
+                                {% if pending_memos_count > 0 %}
+                                <span class="badge bg-warning ms-1">{{ pending_memos_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'memo-list' %}?direction=incoming">
+                                <i class="fas fa-inbox"></i> Incoming Memos
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'memo-list' %}?direction=outgoing">
+                                <i class="fas fa-paper-plane"></i> Outgoing Memos
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Reports Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-file-alt"></i> Reports
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'payment-report' %}">
+                                <i class="fas fa-money-bill-wave"></i> Payment Report
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-file-pdf"></i> Document Status
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-download"></i> Export All Data
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            <!-- User Menu -->
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-user-cog"></i> Profile
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'change-password' %}">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/admin/">
+                                <i class="fas fa-database"></i> Admin Panel
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% comment %} <li>
+                            <a class="dropdown-item text-danger" href="{% url 'admin:logout' %}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li> {% endcomment %}
+                        <li>
+                            <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'admin:login' %}">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

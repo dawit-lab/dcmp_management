@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5" style="max-width: 720px;">
+
+  <div class="text-center mb-4">
+    <h1 style="color:#1B5E20;">
+      <i class="fas fa-envelope-open-text me-2"></i> Contact Us
+    </h1>
+    <p class="text-muted">
+      Have a question or need assistance? Send us a message and we'll get back to you.
+    </p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card h-100" style="border-left: 4px solid #1B5E20;">
+        <div class="card-body">
+          <h6 class="text-muted text-uppercase small mb-3">Reach Us</h6>
+          <p class="mb-2">
+            <i class="fas fa-envelope text-success me-2"></i>
+            {% comment %} <a href="mailto:support@africanunion.org">support@africanunion.org</a> {% endcomment %}
+            <a href="mailto:dawit.abanefso@africanunion.org">support@africanunion.org</a>
+          </p>
+          <p class="mb-2">
+            <i class="fas fa-phone text-success me-2"></i>
+            {% comment %} +251 11 551 7700 {% endcomment %}
+            +251 94 123 7341
+          </p>
+          <p class="mb-2">
+            <i class="fas fa-map-marker-alt text-success me-2"></i>
+            Addis Ababa, Ethiopia
+          </p>
+          <hr>
+          <p class="small text-muted mb-0">
+            We typically respond within 2 business days.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-body p-4">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {# honeypot #}
+            <div aria-hidden="true">
+              {{ form.website }}
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="{{ form.name.id_for_label }}" class="form-label">
+                  Full name <span class="text-danger">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                  <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.email.id_for_label }}" class="form-label">
+                  Email <span class="text-danger">*</span>
+                </label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                  <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.phone.id_for_label }}" class="form-label">
+                  Phone
+                </label>
+                {{ form.phone }}
+                {% if form.phone.errors %}
+                  <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.subject.id_for_label }}" class="form-label">
+                  Subject <span class="text-danger">*</span>
+                </label>
+                {{ form.subject }}
+                {% if form.subject.errors %}
+                  <div class="text-danger small mt-1">{{ form.subject.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="col-12">
+                <label for="{{ form.message.id_for_label }}" class="form-label">
+                  Message <span class="text-danger">*</span>
+                </label>
+                {{ form.message }}
+                {% if form.message.errors %}
+                  <div class="text-danger small mt-1">{{ form.message.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="col-12 text-end">
+                <button type="submit" class="btn btn-success btn-lg">
+                  <i class="fas fa-paper-plane me-2"></i> Send Message
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

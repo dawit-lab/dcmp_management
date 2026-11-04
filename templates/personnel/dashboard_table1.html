@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load personnel_extras %}
+
+{% block extra_css %}
+<!-- DataTables styling (already in base, but we keep) -->
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            {% comment %} <h3 class="fw-bold">INTERPRETERS EXTRAORDINARY SESSION OF THE EXECUTIVE COUNCIL AND THE ASSEMBLY</h3>
+            <h4 class="fw-bold">Accra, Ghana | 21-22 July 2026</h4> {% endcomment %}
+            <h3 class="fw-bold">21st Extraordinary Session on Strengthening of the Mechanims for Conflict Prevention and Resolution in Africa </h3>
+            <h4 class="fw-bold">Luanda, Angola | 29-30 August</h4>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Personnel</h5>
+                    <h2>{{ total_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Documents Complete</h5>
+                    <h2>{{ complete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Incomplete</h5>
+                    <h2>{{ incomplete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Pending Payment</h5>
+                    <h2>{{ pending_payments|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Export Button -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <button id="exportAllBtn" class="btn btn-success btn-lg">
+                <i class="fas fa-file-excel"></i> Export All to Excel (Both Tables)
+            </button>
+        </div>
+    </div>
+
+    <!-- Personnel Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="personnelTable">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Nationality</th>
+                            <th>Designation</th>
+                            <th>City of Departure</th>
+                            <th>Passport Type</th>
+                            <th>Passport Expiry</th>
+                            <th>Passport Number</th>
+                            <th>Documents</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in personnel_list %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a href="{% url 'personnel-detail' person.id %}">
+                                    <strong>{{ person.full_name }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ person.first_name }}</td>
+                            <td>{{ person.last_name }}</td>
+                            <td>
+                                <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+                            </td>
+                            <td>{{ person.nationality }}</td>
+                            <td>
+                                <span class="badge bg-{% if 'interpreter' in person.designation|lower %}primary{% else %}info{% endif %}">
+                                    {{ person.designation|default:"Interpreter" }}
+                                </span>
+                            </td>
+                            <td>{{ person.city_departure }}</td>
+                            <td>
+                                {% with doc_status=person.get_document_status %}
+                                {% if doc_status.passport.uploaded %}
+                                    <span class="badge bg-success">Uploaded</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Missing</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with doc_status=person.get_document_status %}
+                                {% if doc_status.passport.uploaded %}
+                                    {{ person.documents.all|first|default:"N/A" }}
+                                {% else %}
+                                    <span class="text-dark">N/A</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with doc_status=person.get_document_status %}
+                                {% if doc_status.passport.uploaded %}
+                                    <span class="text-success">✓</span>
+                                {% else %}
+                                    <span class="text-danger">✗</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% with doc_status=person.get_document_status %}
+                                    {% for doc_type, info in doc_status.items %}
+                                        <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }} 
+                                                  text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                           title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}">
+                                        </i>
+                                    {% endfor %}
+                                    {% endwith %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'personnel-detail' person.id %}" 
+                                       class="btn btn-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'upload-document-view' person.id %}" 
+                                       class="btn btn-success" title="Upload Document">
+                                        <i class="fas fa-upload"></i>
+                                    </a>
+                                    <button class="btn btn-primary" 
+                                            onclick="sendReminder({{ person.id }})" 
+                                            title="Send Reminder">
+                                        <i class="fas fa-envelope"></i>
+                                    </button>
+                                    {% comment %} <a href="{% url 'calculate-payment' person.id %}" 
+                                       class="btn btn-warning" title="Calculate Payment"> {% endcomment %}
+                                       <a href="{% url 'personnel-calculate-payment-and-redirect' person.id  %}" 
+                                       class="btn btn-warning" title="Calculate Payment">
+                                        <i class="fas fa-calculator"></i>
+                                    </a>
+                                    <button class="btn btn-danger" 
+                                            onclick="sendToFinance({{ person.id }})" 
+                                            title="Send to Finance"
+                                            {% if not person.has_all_documents %}disabled{% endif %}>
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="13" class="text-center text-dark">
+                                No personnel found. <a href="{% url 'meeting-create' %}">Create a meeting</a> and add personnel.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- DSA Payment Certification Section (Second Sheet) -->
+    <div class="card mt-4">
+        <div class="card-header bg-dark text-white">
+            <h4>DSA PAYMENT CERTIFICATION SHEET</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dsaTable">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Full Name</th>
+                            <th>Nationality</th>
+                            <th>Designation</th>
+                            <th>DSA Amount (USD)</th>
+                            <th>Date of Payment</th>
+                            <th>Signature</th>
+                            <th>Authorizing Officer</th>
+                            <th>Finance Officer</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in personnel_list %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ person.full_name }}</td>
+                            <td>{{ person.nationality }}</td>
+                            <td>{{ person.designation }}</td>
+                            <td>
+                                {% with payment=person.payments.first %}
+                                    {% if payment %}
+                                        ${{ payment.total_amount }}
+                                    {% else %}
+                                        <span class="text-dark fw-semibold">Pending</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with payment=person.payments.first %}
+                                    {% if payment and payment.payment_date %}
+                                        {{ payment.payment_date|date:"Y-m-d" }}
+                                    {% else %}
+                                        <span class="text-dark">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <i class="fas fa-pen text-dark"></i>
+                            </td>
+                            <td>
+                                <i class="fas fa-pen text-dark"></i>
+                            </td>
+                            <td>
+                                <i class="fas fa-pen text-dark"></i>
+                            </td>
+                            <td>
+                                <span class="text-dark">-</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-dark">No personnel found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JS Libraries for Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+    // ----- Your existing helper functions -----
+    function sendReminder(personnelId) {
+        if (confirm('Send document reminder to this personnel?')) {
+            fetch(`/api/personnel/${personnelId}/send-reminder/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Reminder sent successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error sending reminder: ' + error);
+            });
+        }
+    }
+
+    function sendToFinance(personnelId) {
+        if (confirm('Send this personnel\'s documents to finance?')) {
+            fetch(`/api/personnel/${personnelId}/send-to-finance/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message || 'Sent to finance successfully!');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // ----- Single Export Button Logic -----
+    document.getElementById('exportAllBtn').addEventListener('click', function() {
+        // 1. Get the two tables (raw DOM) – they contain all rows because we render them in Django.
+        //    But if DataTables is initialized, the visible rows might be paginated.
+        //    To export ALL rows, we'll clone the tables and remove DataTables-specific classes/attributes,
+        //    then use XLSX to convert.
+        var personnelTable = document.getElementById('personnelTable').cloneNode(true);
+        var dsaTable = document.getElementById('dsaTable').cloneNode(true);
+
+        // Remove the last column (Actions) from the personnel table clone
+        var rows = personnelTable.querySelectorAll('tr');
+        rows.forEach(function(row) {
+            var cells = row.querySelectorAll('th, td');
+            if (cells.length > 0) {
+                // Remove the last cell (Actions column)
+                row.removeChild(cells[cells.length - 1]);
+            }
+        });
+
+        // Remove any DataTables wrapper classes/attributes (just to be safe)
+        // We'll strip out any 'data-*' attributes added by DataTables.
+        [personnelTable, dsaTable].forEach(function(table) {
+            // Remove class "dataTable" if present (it gets added by DataTables)
+            table.classList.remove('dataTable');
+            // Remove any 'role' or 'aria-describedby' attributes that might confuse XLSX
+            table.removeAttribute('role');
+            table.removeAttribute('aria-describedby');
+            // Optionally remove 'id' if you want, but not necessary
+        });
+
+        // 2. Create workbook and sheets
+        var wb = XLSX.utils.book_new();
+
+        // Convert personnel table to sheet
+        var ws1 = XLSX.utils.table_to_sheet(personnelTable);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Interpreters');
+
+        // Convert DSA table to sheet
+        var ws2 = XLSX.utils.table_to_sheet(dsaTable);
+        XLSX.utils.book_append_sheet(wb, ws2, 'DSA');
+
+        // 3. Export the workbook
+        XLSX.writeFile(wb, 'Interpreters_and_DSA_Report.xlsx');
+    });
+
+    // ----- DataTables Initialization (for sorting/filtering, no export buttons) -----
+    $(document).ready(function() {
+        if ($.fn.DataTable) {
+            // Personnel Table – with standard features, but we removed buttons
+            $('#personnelTable').DataTable({
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']],
+                columnDefs: [
+                    { targets: [-1], orderable: false, searchable: false } // Actions column
+                ]
+            });
+
+            // DSA Table
+            $('#dsaTable').DataTable({
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']]
+            });
+        }
+    });
+</script>
+{% endblock %}

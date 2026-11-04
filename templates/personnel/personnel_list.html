@@ -1,0 +1,843 @@
+<!-- templates/personnel/personnel_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<!-- DataTables styling -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    :root {
+        --au-green: #1B5E20;
+        --au-green-light: #319400;
+        --au-gold: #F7C608;
+        --au-red: #952038;
+        --au-green-hover: #154a19;
+    }
+
+    .card-header-au {
+        background-color: var(--au-green);
+        color: #fff;
+        border-bottom: 3px solid var(--au-gold);
+    }
+
+    /* ============================================================
+       COLLAPSIBLE MEETING STYLES
+       ============================================================ */
+    .meeting-collapse-toggle {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s;
+    }
+    .meeting-collapse-toggle:hover {
+        background-color: var(--au-green-hover) !important;
+    }
+    .meeting-collapse-toggle .toggle-icon {
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+    .meeting-collapse-toggle .toggle-icon.collapsed {
+        transform: rotate(-90deg);
+    }
+    .meeting-body {
+        transition: all 0.3s ease;
+    }
+    .meeting-body:not(.show) { display: none; }
+    .meeting-body.show { display: block; }
+    .meeting-body .dataTables_wrapper {
+        padding-top: 10px;
+        overflow-x: auto;
+    }
+    .dataTables_info,
+    .dataTables_length {
+        display: none !important;
+    }
+
+    /* ============================================================
+       AU COLORED MEETING HEADERS
+       ============================================================ */
+    .meeting-header-au {
+        background-color: var(--au-green) !important;
+        color: #fff !important;
+        border-bottom: 3px solid var(--au-gold) !important;
+    }
+    .meeting-header-au .badge-count {
+        background-color: var(--au-gold) !important;
+        color: #1B1B1B !important;
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 0.35rem 0.65rem;
+    }
+    .meeting-header-au .meeting-stat-item {
+        background: rgba(247, 198, 8, 0.18);
+        border: 1px solid rgba(247, 198, 8, 0.35);
+        font-size: 0.85rem;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+    .meeting-header-au .meeting-stat-item i {
+        margin-right: 4px;
+        color: var(--au-gold);
+    }
+    .meeting-header-au .btn-availability {
+        background-color: #fff !important;
+        color: var(--au-green) !important;
+        font-weight: 600;
+        border: 1px solid rgba(0,0,0,0.08);
+    }
+    .meeting-header-au .btn-availability:hover {
+        background-color: var(--au-gold) !important;
+        color: #1B1B1B !important;
+    }
+    .meeting-header-au .btn-availability .badge {
+        font-size: 0.75rem;
+    }
+
+    /* ============================================================
+       STATS CARDS
+       ============================================================ */
+    .card-au-primary { background-color: var(--au-green) !important; color: white; border-bottom: 3px solid var(--au-gold); }
+    .card-au-success { background-color: var(--au-green-light) !important; color: white; }
+    .card-au-gold    { background-color: var(--au-gold) !important; color: #1B1B1B; }
+    .card-au-red     { background-color: var(--au-red) !important; color: white; }
+
+    /* ============================================================
+       TEXT & BADGE UTILITIES
+       ============================================================ */
+    .text-au-green { color: var(--au-green) !important; }
+    .badge-au-green { background-color: var(--au-green) !important; color: white; }
+
+    /* ============================================================
+       MEETING HEADER LAYOUT
+       ============================================================ */
+    .meeting-header-actions { display: flex; align-items: center; gap: 10px; }
+    .meeting-stats { display: flex; gap: 15px; flex-wrap: wrap; }
+
+    .meeting-card { position: relative; }
+    .meeting-card .card-header { position: sticky; top: 0; z-index: 10; }
+
+    .btn-expand-all { transition: all 0.3s ease; }
+    .btn-expand-all:hover { transform: scale(1.05); }
+
+    /* ============================================================
+       TABLE HEADER AU COLORS
+       ============================================================ */
+    .table-au-header {
+        background-color: #e8f5e9 !important;
+        color: var(--au-green);
+    }
+
+    /* ============================================================
+       ROW HIGHLIGHT — SENT TO FINANCE (AU GOLD)
+       ============================================================ */
+    tr.row-sent-to-finance > td {
+        background-color: var(--au-gold) !important;
+        border-color: #d4a700 !important;
+        color: #1B1B1B !important;
+    }
+    tr.row-sent-to-finance:hover > td {
+        background-color: #e0b400 !important;
+        color: #1B1B1B !important;
+    }
+    tr.row-sent-to-finance > td:first-child {
+        box-shadow: inset 4px 0 0 0 var(--au-green);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <hr style="border-top: 3px solid var(--au-gold);">
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GLOBAL SEARCH & FILTER BAR -->
+    <!-- ============================================================ -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card" style="border-left: 4px solid var(--au-green);">
+                <div class="card-body py-3">
+                    <form method="get" id="globalSearchForm" class="row g-2 align-items-center">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text" style="background: var(--au-green); color: white;">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text"
+                                       name="q"
+                                       id="globalSearchInput"
+                                       class="form-control"
+                                       placeholder="Search meetings, personnel names, emails, nationalities..."
+                                       value="{{ request.GET.q|default:'' }}">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                                {% if request.GET.q %}
+                                <a href="?" class="btn btn-outline-secondary" title="Clear search">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="designation" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Designations</option>
+                                <option value="translator"   {% if request.GET.designation == 'translator' %}selected{% endif %}>Translators</option>
+                                <option value="interpreter"  {% if request.GET.designation == 'interpreter' %}selected{% endif %}>Interpreters</option>
+                                <option value="coordination" {% if request.GET.designation == 'coordination' %}selected{% endif %}>Coordination</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="doc_status" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Statuses</option>
+                                <option value="complete"        {% if request.GET.doc_status == 'complete' %}selected{% endif %}>Documents Complete</option>
+                                <option value="incomplete"      {% if request.GET.doc_status == 'incomplete' %}selected{% endif %}>Incomplete</option>
+                                <option value="pending_payment" {% if request.GET.doc_status == 'pending_payment' %}selected{% endif %}>Pending Payment</option>
+                            </select>
+                        </div>
+                    </form>
+                    {% if request.GET.q %}
+                    <div class="mt-2 small text-muted">
+                        <i class="fas fa-filter"></i>
+                        Showing results for: <strong>"{{ request.GET.q }}"</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <button class="btn btn-success me-2 btn-expand-all" onclick="toggleAllMeetings()">
+                    <i class="fas fa-expand-all"></i> <span id="expandAllText">Expand All</span>
+                </button>
+                <a href="{% url 'meeting-create' %}" class="btn btn-success">
+                    <i class="fas fa-calendar-plus"></i> New Meeting
+                </a>
+                <a href="{% url 'personnel-add' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Add Personnel
+                </a>
+                <a href="#" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                    <i class="fas fa-upload"></i> Bulk Upload
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GROUPED PERSONNEL BY MEETING -->
+    <!-- ============================================================ -->
+    {% for group in grouped_meetings %}
+    <div class="card mb-4 meeting-card">
+        <div class="card-header meeting-header-au meeting-collapse-toggle"
+             onclick="toggleMeeting(this)"
+             data-target="meeting-body-{{ group.meeting.id }}">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span class="toggle-icon" id="toggle-icon-{{ group.meeting.id }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        {{ group.meeting.name }}
+                    </h4>
+                    <span class="badge badge-count">
+                        {{ group.total }} personnel
+                    </span>
+
+                    <!-- Availability button -->
+                    <a href="{% url 'meeting-availability-dashboard' group.meeting.id %}"
+                       class="btn btn-sm btn-availability"
+                       onclick="event.stopPropagation();"
+                       title="View and manage availability requests for this meeting">
+                        <i class="fas fa-envelope-open-text me-1"></i>
+                        Availability
+                        <span class="badge bg-warning text-dark ms-1">
+                            {{ group.meeting.availability_requests.count }}
+                        </span>
+                    </a>
+                </div>
+                <div class="meeting-header-actions">
+                    <div class="meeting-stats d-none d-md-flex">
+                        {% if group.translators %}
+                        <span class="meeting-stat-item">
+                            <i class="fas fa-language"></i> {{ group.translators|length }} Translators
+                        </span>
+                        {% endif %}
+                        {% if group.interpreters %}
+                        <span class="meeting-stat-item">
+                            <i class="fas fa-microphone"></i> {{ group.interpreters|length }} Interpreters
+                        </span>
+                        {% endif %}
+                        {% if group.coordination %}
+                        <span class="meeting-stat-item">
+                            <i class="fas fa-users-cog"></i> {{ group.coordination|length }} Coordination
+                        </span>
+                        {% endif %}
+                    </div>
+                    <small class="text-light">
+                        <i class="fas fa-map-marker-alt me-1"></i> {{ group.meeting.location }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-calendar-day me-1"></i> {{ group.meeting.start_date|date:"M d, Y" }} - {{ group.meeting.end_date|date:"M d, Y" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="meeting-body" id="meeting-body-{{ group.meeting.id }}">
+            <div class="card-body">
+
+                <!-- Translators -->
+                {% if group.translators %}
+                <div class="mb-4">
+                    <h5 class="text-au-green">
+                        <i class="fas fa-language"></i> Translators
+                        <span class="badge badge-au-green">{{ group.translators|length }}</span>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover personnel-table"
+                               data-meeting="{{ group.meeting.id }}"
+                               id="personnel-table-{{ group.meeting.id }}-translators">
+                            <thead class="table-au-header">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Nationality</th>
+                                    <th>Departure</th>
+                                    <th>Documents</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in group.translators %}
+                                <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><a href="{% url 'personnel-detail' person.id %}"><strong>{{ person.full_name }}</strong></a></td>
+                                    <td>{{ person.first_name }}</td>
+                                    <td>{{ person.last_name }}</td>
+                                    <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>{{ person.city_departure }}</td>
+                                    <td>
+                                        {% with doc_status=person.get_document_status %}
+                                        <div class="d-flex gap-1">
+                                            {% for doc, info in doc_status.items %}
+                                            <i class="fas fa-{{ info.uploaded|yesno:'check,times' }} text-{{ info.uploaded|yesno:'success,danger' }}"
+                                               title="{{ doc }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                            {% endfor %}
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ person.documents_complete|yesno:'success,warning' }}">
+                                            {{ person.documents_complete|yesno:'Complete,Incomplete' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View"><i class="fas fa-eye"></i></a>
+                                            <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                                            <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload"><i class="fas fa-upload"></i></a>
+                                            <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder"><i class="fas fa-envelope"></i></button>
+                                            <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment"><i class="fas fa-calculator"></i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Interpreters -->
+                {% if group.interpreters %}
+                <div class="mb-4">
+                    <h5 class="text-au-green">
+                        <i class="fas fa-microphone"></i> Interpreters
+                        <span class="badge badge-au-green">{{ group.interpreters|length }}</span>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover personnel-table"
+                               data-meeting="{{ group.meeting.id }}"
+                               id="personnel-table-{{ group.meeting.id }}-interpreters">
+                            <thead class="table-au-header">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Nationality</th>
+                                    <th>Departure</th>
+                                    <th>Documents</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in group.interpreters %}
+                                <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><a href="{% url 'personnel-detail' person.id %}"><strong>{{ person.full_name }}</strong></a></td>
+                                    <td>{{ person.first_name }}</td>
+                                    <td>{{ person.last_name }}</td>
+                                    <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>{{ person.city_departure }}</td>
+                                    <td>
+                                        {% with doc_status=person.get_document_status %}
+                                        <div class="d-flex gap-1">
+                                            {% for doc, info in doc_status.items %}
+                                            <i class="fas fa-{{ info.uploaded|yesno:'check,times' }} text-{{ info.uploaded|yesno:'success,danger' }}"
+                                               title="{{ doc }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                            {% endfor %}
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ person.documents_complete|yesno:'success,warning' }}">
+                                            {{ person.documents_complete|yesno:'Complete,Incomplete' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View"><i class="fas fa-eye"></i></a>
+                                            <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                                            <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload"><i class="fas fa-upload"></i></a>
+                                            <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder"><i class="fas fa-envelope"></i></button>
+                                            <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment"><i class="fas fa-calculator"></i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Coordination Team -->
+                {% if group.coordination %}
+                <div class="mb-4">
+                    <h5 class="text-au-green">
+                        <i class="fas fa-users-cog"></i> Coordination Team
+                        <span class="badge badge-au-green">{{ group.coordination|length }}</span>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover personnel-table"
+                               data-meeting="{{ group.meeting.id }}"
+                               id="personnel-table-{{ group.meeting.id }}-coordination">
+                            <thead class="table-au-header">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Nationality</th>
+                                    <th>Departure</th>
+                                    <th>Documents</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in group.coordination %}
+                                <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><a href="{% url 'personnel-detail' person.id %}"><strong>{{ person.full_name }}</strong></a></td>
+                                    <td>{{ person.first_name }}</td>
+                                    <td>{{ person.last_name }}</td>
+                                    <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>{{ person.city_departure }}</td>
+                                    <td>
+                                        {% with doc_status=person.get_document_status %}
+                                        <div class="d-flex gap-1">
+                                            {% for doc, info in doc_status.items %}
+                                            <i class="fas fa-{{ info.uploaded|yesno:'check,times' }} text-{{ info.uploaded|yesno:'success,danger' }}"
+                                               title="{{ doc }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                            {% endfor %}
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ person.documents_complete|yesno:'success,warning' }}">
+                                            {{ person.documents_complete|yesno:'Complete,Incomplete' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View"><i class="fas fa-eye"></i></a>
+                                            <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                                            <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload"><i class="fas fa-upload"></i></a>
+                                            <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder"><i class="fas fa-envelope"></i></button>
+                                            <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment"><i class="fas fa-calculator"></i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not group.translators and not group.interpreters and not group.coordination %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle"></i> No personnel in this meeting
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+
+    <!-- Personnel Without Meeting -->
+    {% if personnel_without_meeting %}
+    <div class="card mb-4 meeting-card">
+        <div class="card-header meeting-header-au meeting-collapse-toggle"
+             onclick="toggleMeeting(this)"
+             data-target="meeting-body-no-meeting">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="toggle-icon" id="toggle-icon-no-meeting">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Personnel Without Meeting
+                    </h4>
+                    <span class="badge badge-count">
+                        {{ personnel_without_meeting|length }} personnel
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="meeting-body" id="meeting-body-no-meeting">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover personnel-table" id="personnel-table-no-meeting">
+                        <thead class="table-au-header">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Nationality</th>
+                                <th>Departure</th>
+                                <th>Documents</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person in personnel_without_meeting %}
+                            <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                <td>{{ forloop.counter }}</td>
+                                <td><a href="{% url 'personnel-detail' person.id %}"><strong>{{ person.full_name }}</strong></a></td>
+                                <td>{{ person.first_name }}</td>
+                                <td>{{ person.last_name }}</td>
+                                <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                <td>{{ person.nationality }}</td>
+                                <td>{{ person.city_departure }}</td>
+                                <td>
+                                    {% with doc_status=person.get_document_status %}
+                                    <div class="d-flex gap-1">
+                                        {% for doc, info in doc_status.items %}
+                                        <i class="fas fa-{{ info.uploaded|yesno:'check,times' }} text-{{ info.uploaded|yesno:'success,danger' }}"
+                                           title="{{ doc }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                        {% endfor %}
+                                    </div>
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ person.documents_complete|yesno:'success,warning' }}">
+                                        {{ person.documents_complete|yesno:'Complete,Incomplete' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View"><i class="fas fa-eye"></i></a>
+                                        <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                                        <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload"><i class="fas fa-upload"></i></a>
+                                        <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder"><i class="fas fa-envelope"></i></button>
+                                        <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment"><i class="fas fa-calculator"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No personnel found.
+        <a href="{% url 'personnel-add' %}" class="alert-link">Add personnel</a> or
+        <a href="{% url 'meeting-create' %}" class="alert-link">create a meeting</a>.
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Total count summary -->
+    <div class="text-muted small mt-3">
+        Total: {{ total_count }} personnel
+        {% if personnel_without_meeting %}
+        ({{ personnel_without_meeting|length }} without meeting)
+        {% endif %}
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GLOBAL PAGINATION (for meeting cards) -->
+    <!-- ============================================================ -->
+    {% if page_obj and page_obj.has_other_pages %}
+    <nav aria-label="Meeting pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                        <i class="fas fa-angle-double-left"></i> First
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                        <i class="fas fa-angle-left"></i> Previous
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link"><i class="fas fa-angle-double-left"></i> First</span></li>
+                <li class="page-item disabled"><span class="page-link"><i class="fas fa-angle-left"></i> Previous</span></li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link" style="background-color: var(--au-green); border-color: var(--au-green);">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                        Next <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                        Last <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">Next <i class="fas fa-angle-right"></i></span></li>
+                <li class="page-item disabled"><span class="page-link">Last <i class="fas fa-angle-double-right"></i></span></li>
+            {% endif %}
+        </ul>
+        <p class="text-center text-muted small mb-0">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            ({{ page_obj.paginator.count }} total meetings)
+        </p>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Bulk Upload Modal -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Upload Personnel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'bulk-upload' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Excel File (.xlsx)</label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                        <div class="form-text">
+                            File should contain columns: First Name, Last Name, Nationality,
+                            Designation/Assignment, City of Departure
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Meeting</label>
+                        <select name="meeting" class="form-select" required>
+                            <option value="">Select Meeting</option>
+                            {% for meeting in meetings %}
+                            <option value="{{ meeting.id }}">{{ meeting.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCRIPTS -->
+<!-- ============================================================ -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    const initializedTables = new Set();
+
+    function initDataTable(tableElement) {
+        if (!tableElement) return;
+        const tableId = tableElement.id || tableElement.className + '_' + Math.random().toString(36).substr(2, 9);
+        if (initializedTables.has(tableId)) return;
+        if ($.fn.DataTable.isDataTable(tableElement)) return;
+
+        try {
+            $(tableElement).DataTable({
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']],
+                columnDefs: [{ targets: [-1], orderable: false, searchable: false }],
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    zeroRecords: "No matching records found",
+                    paginate: { first: "First", last: "Last", next: "Next", previous: "Previous" }
+                }
+            });
+            initializedTables.add(tableId);
+        } catch (error) { console.error('DataTable init error:', error); }
+    }
+
+    function toggleMeeting(element) {
+        const targetId = element.getAttribute('data-target');
+        const body = document.getElementById(targetId);
+        const icon = element.querySelector('.toggle-icon i');
+        if (!body) return;
+
+        if (body.classList.contains('show')) {
+            body.classList.remove('show');
+            if (icon) icon.className = 'fas fa-chevron-right';
+            updateExpandAllButton();
+        } else {
+            body.classList.add('show');
+            if (icon) icon.className = 'fas fa-chevron-down';
+            body.querySelectorAll('.personnel-table').forEach(function (t) { initDataTable(t); });
+            updateExpandAllButton();
+        }
+    }
+
+    function updateExpandAllButton() {
+        const bodies = document.querySelectorAll('.meeting-body');
+        const expandBtn = document.getElementById('expandAllText');
+        if (!expandBtn) return;
+        let allExpanded = true, allCollapsed = true;
+        bodies.forEach(function (body) {
+            if (body.classList.contains('show')) allCollapsed = false;
+            else allExpanded = false;
+        });
+        if (allExpanded && bodies.length > 0) expandBtn.textContent = 'Collapse All';
+        else expandBtn.textContent = 'Expand All';
+    }
+
+    function toggleAllMeetings() {
+        const bodies = document.querySelectorAll('.meeting-body');
+        const icons = document.querySelectorAll('.meeting-collapse-toggle .toggle-icon i');
+        const expandBtn = document.getElementById('expandAllText');
+        let allCollapsed = true;
+        bodies.forEach(function (b) { if (b.classList.contains('show')) allCollapsed = false; });
+
+        if (allCollapsed) {
+            bodies.forEach(function (b) { b.classList.add('show'); });
+            icons.forEach(function (i) { i.className = 'fas fa-chevron-down'; });
+            if (expandBtn) expandBtn.textContent = 'Collapse All';
+            setTimeout(function () {
+                document.querySelectorAll('.personnel-table').forEach(function (t) { initDataTable(t); });
+            }, 100);
+        } else {
+            bodies.forEach(function (b) { b.classList.remove('show'); });
+            icons.forEach(function (i) { i.className = 'fas fa-chevron-right'; });
+            if (expandBtn) expandBtn.textContent = 'Expand All';
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function sendReminder(personnelId, buttonElement) {
+        if (!confirm('Send document reminder to this personnel?')) return;
+        const btn = buttonElement || event.target.closest('button');
+        if (!btn) return;
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        fetch(`/api/personnel/${personnelId}/send-reminder/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => { throw new Error(data.message || data.error || 'Server error'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') alert('✅ Reminder sent successfully!');
+            else alert('⚠️ Error: ' + (data.message || 'Unknown error'));
+        })
+        .catch(error => { console.error('Error:', error); alert('❌ Failed: ' + error.message); })
+        .finally(() => { btn.disabled = false; btn.innerHTML = originalHtml; });
+    }
+
+    (function () {
+        updateExpandAllButton();
+        if (typeof $ !== 'undefined' && $.fn.DataTable) {
+            document.querySelectorAll('.personnel-table').forEach(function (table) {
+                const parent = table.closest('.meeting-body');
+                if (!parent || parent.classList.contains('show')) initDataTable(table);
+            });
+        }
+    })();
+</script>
+{% endblock %}

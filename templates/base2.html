@@ -1,0 +1,366 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCMP Management System</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_superuser or user.is_staff %}
+    <!-- ============================================================ -->
+    <!-- FULL NAVBAR — ADMIN & SUPERUSER (always, on every page) -->
+    <!-- ============================================================ -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-microphone"></i> DCMP Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+                           href="{% url 'dashboard' %}">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+
+                    <!-- Personnel Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'personnel' in request.path %}active{% endif %}"
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-users"></i> Personnel
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'personnel-list' %}">
+                                    <i class="fas fa-list"></i> Personnel List
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'personnel-dashboard-table' %}">
+                                    <i class="fas fa-table"></i> Personnel Dashboard
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'personnel-add' %}">
+                                    <i class="fas fa-user-plus"></i> Add Personnel
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'meeting-create' %}">
+                                    <i class="fas fa-calendar-plus"></i> New Meeting
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Memos Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'memos' in request.path %}active{% endif %}"
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-envelope"></i> Memos
+                            {% if pending_memos_count > 0 %}
+                            <span class="badge bg-danger ms-1">{{ pending_memos_count }}</span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'memo-list' %}">
+                                    <i class="fas fa-list"></i> All Memos
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'memo-dashboard' %}">
+                                    <i class="fas fa-chart-pie"></i> Memo Dashboard
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'memo-upload-incoming' %}">
+                                    <i class="fas fa-upload"></i> Upload Incoming
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'memo-create' %}">
+                                    <i class="fas fa-plus"></i> New Memo
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'memo-list' %}?status=pending">
+                                    <i class="fas fa-clock"></i> Pending Memos
+                                    {% if pending_memos_count > 0 %}
+                                    <span class="badge bg-warning ms-1">{{ pending_memos_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'memo-list' %}?direction=incoming">
+                                    <i class="fas fa-inbox"></i> Incoming Memos
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'memo-list' %}?direction=outgoing">
+                                    <i class="fas fa-paper-plane"></i> Outgoing Memos
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Reports Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-alt"></i> Reports
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'payment-report' %}">
+                                    <i class="fas fa-money-bill-wave"></i> Payment Report
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-file-pdf"></i> Document Status
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-download"></i> Export All Data
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Contact (admin can also open it) -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'contact' %}">
+                            <i class="fas fa-envelope-open-text"></i> Contact
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- User Menu -->
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-user-cog"></i> Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'change-password' %}">
+                                    <i class="fas fa-key"></i> Change Password
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/admin/">
+                                    <i class="fas fa-database"></i> Admin Panel
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+{% elif request.resolver_match.url_name == 'login' %}
+    <!-- ============================================================ -->
+    <!-- MINIMAL NAVBAR — LOGIN PAGE -->
+    <!-- ============================================================ -->
+    <nav class="navbar navbar-expand-lg" style="background-color:#1B5E20;">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold" href="/">
+                <i class="fas fa-shield-halved me-2"></i> DCMP
+            </a>
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                <a href="{% url 'contact' %}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-envelope me-1"></i> Contact Us
+                </a>
+                <a href="{% url 'login' %}"
+                   class="btn btn-light btn-sm fw-semibold" style="color:#1B5E20;">
+                    <i class="fas fa-right-to-bracket me-1"></i> Login
+                </a>
+            </div>
+        </div>
+    </nav>
+
+{% elif request.resolver_match.url_name == 'contact' %}
+    <!-- ============================================================ -->
+    <!-- MINIMAL NAVBAR — CONTACT PAGE -->
+    <!-- ============================================================ -->
+    <nav class="navbar navbar-expand-lg" style="background-color:#1B5E20;">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold" href="/">
+                <i class="fas fa-shield-halved me-2"></i> DCMP Management
+            </a>
+            <div class="ms-auto">
+                <a href="{% url 'login' %}"
+                   class="btn btn-light btn-sm fw-semibold" style="color:#1B5E20;">
+                    <i class="fas fa-right-to-bracket me-1"></i> Login
+                </a>
+            </div>
+        </div>
+    </nav>
+
+{% elif request.resolver_match.url_name == 'coordinator-dashboard'
+     or request.resolver_match.url_name == 'interpreter-dashboard'
+     or request.resolver_match.url_name == 'translator-dashboard' %}
+    <!-- ============================================================ -->
+    <!-- MINIMAL NAVBAR — ROLE DASHBOARDS (non-admin users) -->
+    <!-- ============================================================ -->
+    <nav class="navbar navbar-expand-lg" style="background-color:#1B5E20;">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold" href="/">
+                <i class="fas fa-shield-halved me-2"></i> DCMP Management
+            </a>
+            <div class="ms-auto">
+                <a href="{% url 'logout' %}"
+                   class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+{% else %}
+    <!-- ============================================================ -->
+    <!-- FULL NAVBAR — FALLBACK FOR ANY OTHER AUTHENTICATED PAGE -->
+    <!-- (e.g. change-password, my-meeting-upload, etc.) -->
+    <!-- ============================================================ -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-microphone"></i> DCMP Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'contact' %}">
+                            <i class="fas fa-envelope-open-text"></i> Contact
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'change-password' %}">
+                                    <i class="fas fa-key"></i> Change Password
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+{% endif %}
+
+<!-- Main Content -->
+<div class="container-fluid mt-3">
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Content Block -->
+    {% block content %}{% endblock %}
+</div>
+
+<!-- Footer -->
+<footer class="footer mt-5 py-3 bg-light">
+    <div class="container text-center text-muted">
+        <p class="mb-0">
+            &copy; {% now "Y" %} DCMP Management System. All rights reserved.
+            <span class="mx-2">|</span>
+            <i class="fas fa-code"></i> Design and Built by Sebsebe
+        </p>
+    </div>
+</footer>
+
+<!-- JavaScript Libraries -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Custom JS -->
+{% load static %}
+<script src="{% static 'js/main.js' %}"></script>
+
+<!-- Block for extra page-specific JavaScript -->
+{% block extra_js %}{% endblock %}
+</body>
+</html>

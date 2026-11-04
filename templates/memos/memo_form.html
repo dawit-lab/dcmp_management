@@ -1,0 +1,796 @@
+<!-- templates/memos/memo_form.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-file-alt"></i> {{ title }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="memoForm">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- ============================================================ -->
+                    <!-- BASIC INFORMATION -->
+                    <!-- ============================================================ -->
+                    <h5 class="mt-3"><i class="fas fa-info-circle"></i> Basic Information</h5>
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.direction.id_for_label }}" class="form-label">Direction *</label>
+                                {{ form.direction }}
+                                {% if form.direction.errors %}
+                                <div class="text-danger">{{ form.direction.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.priority.id_for_label }}" class="form-label">Priority</label>
+                                {{ form.priority }}
+                                {% if form.priority.errors %}
+                                <div class="text-danger">{{ form.priority.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.subject.id_for_label }}" class="form-label">Subject *</label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                        <div class="text-danger">{{ form.subject.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- MEMO TYPE, CATEGORY, DEPARTMENTS (WITH ADD BUTTONS) -->
+                    <!-- ============================================================ -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.memo_type.id_for_label }}" class="form-label">Memo Type</label>
+                                <div class="d-flex">
+                                    {{ form.memo_type }}
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                            onclick="openModal('memo_type', '{{ form.memo_type.id_for_label }}', 'Memo Type')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Select existing or create new</small>
+                                {% if form.memo_type.errors %}
+                                <div class="text-danger">{{ form.memo_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                                <div class="d-flex">
+                                    {{ form.category }}
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                            onclick="openModal('category', '{{ form.category.id_for_label }}', 'Category')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Select existing or create new</small>
+                                {% if form.category.errors %}
+                                <div class="text-danger">{{ form.category.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.sender_department.id_for_label }}" class="form-label">Sender Department</label>
+                                <div class="d-flex">
+                                    {{ form.sender_department }}
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                            onclick="openModal('sender_department', '{{ form.sender_department.id_for_label }}', 'Department')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Select existing or create new</small>
+                                {% if form.sender_department.errors %}
+                                <div class="text-danger">{{ form.sender_department.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.receiver_department.id_for_label }}" class="form-label">Receiver Department</label>
+                                <div class="d-flex">
+                                    {{ form.receiver_department }}
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                            onclick="openModal('receiver_department', '{{ form.receiver_department.id_for_label }}', 'Department')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Select existing or create new</small>
+                                {% if form.receiver_department.errors %}
+                                <div class="text-danger">{{ form.receiver_department.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- DATES -->
+                    <!-- ============================================================ -->
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.memo_date.id_for_label }}" class="form-label">Memo Date *</label>
+                                {{ form.memo_date }}
+                                {% if form.memo_date.errors %}
+                                <div class="text-danger">{{ form.memo_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.received_date.id_for_label }}" class="form-label">Received Date</label>
+                                {{ form.received_date }}
+                                {% if form.received_date.errors %}
+                                <div class="text-danger">{{ form.received_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.sent_date.id_for_label }}" class="form-label">Sent Date</label>
+                                {{ form.sent_date }}
+                                {% if form.sent_date.errors %}
+                                <div class="text-danger">{{ form.sent_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                <div class="text-danger">{{ form.due_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- CONTENT -->
+                    <!-- ============================================================ -->
+                    <div class="mb-3">
+                        <label for="{{ form.content.id_for_label }}" class="form-label">Content *</label>
+                        {{ form.content }}
+                        {% if form.content.errors %}
+                        <div class="text-danger">{{ form.content.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.summary.id_for_label }}" class="form-label">Summary</label>
+                        {{ form.summary }}
+                        {% if form.summary.errors %}
+                        <div class="text-danger">{{ form.summary.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- FILE ATTACHMENTS -->
+                    <!-- ============================================================ -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5><i class="fas fa-paperclip"></i> File Attachments</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Incoming Memo File -->
+                            <div class="mb-3">
+                                <label for="{{ form.incoming_memo_file.id_for_label }}" class="form-label">
+                                    <i class="fas fa-file-upload"></i> Incoming Memo File
+                                </label>
+                                {{ form.incoming_memo_file }}
+                                <small class="form-text text-muted">Upload the original incoming memo (PDF, Word, Image)</small>
+                                {% if memo and memo.incoming_memo_file %}
+                                <div class="mt-2">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Currently: {{ memo.file_name }}
+                                    </span>
+                                    <a href="{% url 'memo-view-file' memo.id %}" target="_blank" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </div>
+                                {% endif %}
+                                {% if form.incoming_memo_file.errors %}
+                                <div class="text-danger">{{ form.incoming_memo_file.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Incoming Memo Scan -->
+                            <div class="mb-3">
+                                <label for="{{ form.incoming_memo_scan.id_for_label }}" class="form-label">
+                                    <i class="fas fa-file-pdf"></i> Incoming Memo Scan
+                                </label>
+                                {{ form.incoming_memo_scan }}
+                                <small class="form-text text-muted">Upload a scanned copy of the incoming memo</small>
+                                {% if memo and memo.incoming_memo_scan %}
+                                <div class="mt-2">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Scan uploaded
+                                    </span>
+                                </div>
+                                {% endif %}
+                                {% if form.incoming_memo_scan.errors %}
+                                <div class="text-danger">{{ form.incoming_memo_scan.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Outgoing Memo File -->
+                            <div class="mb-3">
+                                <label for="{{ form.outgoing_memo_file.id_for_label }}" class="form-label">
+                                    <i class="fas fa-file-export"></i> Outgoing Memo File
+                                </label>
+                                {{ form.outgoing_memo_file }}
+                                <small class="form-text text-muted" id="outgoingFileHelp">
+                                    {% if form.direction.value == 'outgoing' %}
+                                    Upload the outgoing memo file (PDF, Word, Image) *
+                                    {% else %}
+                                    Upload the outgoing memo file (optional for incoming)
+                                    {% endif %}
+                                </small>
+                                {% if memo and memo.outgoing_memo_file %}
+                                <div class="mt-2">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Currently: {{ memo.outgoing_memo_file.name }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                {% if form.outgoing_memo_file.errors %}
+                                <div class="text-danger">{{ form.outgoing_memo_file.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Supporting Documents -->
+                            <div class="mb-3">
+                                <label for="{{ form.supporting_documents.id_for_label }}" class="form-label">
+                                    <i class="fas fa-file-alt"></i> Supporting Documents
+                                </label>
+                                {{ form.supporting_documents }}
+                                <small class="form-text text-muted">Upload any supporting documents</small>
+                                {% if memo and memo.supporting_documents %}
+                                <div class="mt-2">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Supporting docs uploaded
+                                    </span>
+                                </div>
+                                {% endif %}
+                                {% if form.supporting_documents.errors %}
+                                <div class="text-danger">{{ form.supporting_documents.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- PERSONNEL REQUIREMENTS -->
+                    <!-- ============================================================ -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5><i class="fas fa-users"></i> Personnel Requirements</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.requires_interpreter }}
+                                            <label for="{{ form.requires_interpreter.id_for_label }}" class="form-check-label">
+                                                Requires Interpreter
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.requires_translator }}
+                                            <label for="{{ form.requires_translator.id_for_label }}" class="form-check-label">
+                                                Requires Translator
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.number_of_interpreters.id_for_label }}" class="form-label">Number of Interpreters</label>
+                                        {{ form.number_of_interpreters }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.number_of_translators.id_for_label }}" class="form-label">Number of Translators</label>
+                                        {{ form.number_of_translators }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.language_requirements.id_for_label }}" class="form-label">Language Requirements</label>
+                                {{ form.language_requirements }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- ACTIONS & STATUS -->
+                    <!-- ============================================================ -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5><i class="fas fa-tasks"></i> Actions & Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="{{ form.action_items.id_for_label }}" class="form-label">Action Items</label>
+                                {{ form.action_items }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.remarks.id_for_label }}" class="form-label">Remarks</label>
+                                {{ form.remarks }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.assigned_to.id_for_label }}" class="form-label">Assigned To</label>
+                                {{ form.assigned_to }}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {{ form.status }}
+                            </div>
+
+                            <!-- Response Section -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.requires_response }}
+                                            <label for="{{ form.requires_response.id_for_label }}" class="form-check-label">
+                                                Requires Response
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.response_due_date.id_for_label }}" class="form-label">Response Due Date</label>
+                                        {{ form.response_due_date }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.received_from.id_for_label }}" class="form-label">Received From</label>
+                                        {{ form.received_from }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.dispatched_to.id_for_label }}" class="form-label">Dispatched To</label>
+                                        {{ form.dispatched_to }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.registry_number.id_for_label }}" class="form-label">Registry Number</label>
+                                        {{ form.registry_number }}
+                                        <small class="text-muted">Auto-generated for incoming memos</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.dispatch_number.id_for_label }}" class="form-label">Dispatch Number</label>
+                                        {{ form.dispatch_number }}
+                                        <small class="text-muted">Auto-generated for outgoing memos</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- FORM ACTIONS -->
+                    <!-- ============================================================ -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'memo-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 
+                            {% if form.instance.pk %}Update{% else %}Create{% endif %} Memo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MODAL: Add New Item ========== -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemModalLabel">Add New <span id="itemTypeLabel"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm">
+                    <div id="itemFields">
+                        <!-- Dynamic fields will be added here -->
+                    </div>
+                    <div id="itemError" class="text-danger mt-2" style="display:none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveItemBtn">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== JAVASCRIPT ========== -->
+<script>
+// ============================================================
+// ADD NEW ITEM MODAL - FIXED
+// ============================================================
+var fieldMap = {};
+
+function openModal(fieldName, fieldId, label) {
+    var modal = new bootstrap.Modal(document.getElementById('addItemModal'));
+    var modalLabel = document.getElementById('itemTypeLabel');
+    var fieldsContainer = document.getElementById('itemFields');
+    var errorDiv = document.getElementById('itemError');
+    
+    // Set label
+    modalLabel.textContent = label;
+    
+    // Store current field info
+    fieldMap.currentField = fieldName;
+    fieldMap.currentFieldId = fieldId;
+    
+    // Clear previous fields
+    fieldsContainer.innerHTML = '';
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    
+    // Build dynamic fields based on type
+    var html = '';
+    
+    if (fieldName === 'department' || fieldName === 'sender_department' || fieldName === 'receiver_department') {
+        html = `
+            <div class="mb-3">
+                <label for="itemName" class="form-label">Department Name *</label>
+                <input type="text" class="form-control" id="itemName" placeholder="e.g., Human Resources" required>
+                <small class="text-muted">Full department name</small>
+            </div>
+            <div class="mb-3">
+                <label for="itemCode" class="form-label">Department Code *</label>
+                <input type="text" class="form-control" id="itemCode" placeholder="e.g., HR, FIN, IT" required>
+                <small class="text-muted">Short code for identification (2-5 characters)</small>
+            </div>
+        `;
+    } else if (fieldName === 'memo_type') {
+        html = `
+            <div class="mb-3">
+                <label for="itemName" class="form-label">Memo Type Name *</label>
+                <input type="text" class="form-control" id="itemName" placeholder="e.g., Internal Memo" required>
+            </div>
+            <div class="mb-3">
+                <label for="itemCode" class="form-label">Memo Type Code *</label>
+                <input type="text" class="form-control" id="itemCode" placeholder="e.g., INTERNAL, EXTERNAL" required>
+                <small class="text-muted">Short code for identification</small>
+            </div>
+        `;
+    } else if (fieldName === 'category') {
+        html = `
+            <div class="mb-3">
+                <label for="itemName" class="form-label">Category Name *</label>
+                <input type="text" class="form-control" id="itemName" placeholder="e.g., Administrative" required>
+            </div>
+            <div class="mb-3">
+                <label for="itemCode" class="form-label">Category Code *</label>
+                <input type="text" class="form-control" id="itemCode" placeholder="e.g., ADMIN, FIN" required>
+                <small class="text-muted">Short code for identification</small>
+            </div>
+            <div class="mb-3">
+                <label for="itemCategoryType" class="form-label">Category Type *</label>
+                <select class="form-select" id="itemCategoryType" required>
+                    <option value="">Select category type...</option>
+                    {% for value, label in category_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        `;
+    }
+    
+    fieldsContainer.innerHTML = html;
+    modal.show();
+}
+
+document.getElementById('saveItemBtn').addEventListener('click', function() {
+    var fieldName = fieldMap.currentField;
+    var fieldId = fieldMap.currentFieldId;
+    var name = document.getElementById('itemName')?.value?.trim();
+    var code = document.getElementById('itemCode')?.value?.trim();
+    var categoryType = document.getElementById('itemCategoryType')?.value;
+    var errorDiv = document.getElementById('itemError');
+    
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    
+    // Validate
+    if (!name) {
+        errorDiv.textContent = 'Name is required';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (!code) {
+        errorDiv.textContent = 'Code is required';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (fieldName === 'category' && !categoryType) {
+        errorDiv.textContent = 'Category type is required';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // Build data
+    var data = { name: name, code: code };
+    if (categoryType) {
+        data.category_type = categoryType;
+    }
+    
+    // Determine URL
+    var url = '';
+    if (fieldName === 'memo_type') {
+        url = '/memos/api/create-memo-type/';
+    } else if (fieldName === 'category') {
+        url = '/memos/api/create-category/';
+    } else if (fieldName === 'sender_department' || fieldName === 'receiver_department' || fieldName === 'department') {
+        url = '/memos/api/create-department/';
+    }
+    
+    console.log('Sending to:', url);
+    console.log('Data:', data);
+    
+    // Disable button
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    
+    // Make AJAX request
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            errorDiv.textContent = data.error;
+            errorDiv.style.display = 'block';
+        } else {
+            // Add new option to select
+            var select = document.getElementById(fieldId);
+            var option = document.createElement('option');
+            option.value = data.id;
+            option.textContent = data.name;
+            select.appendChild(option);
+            select.value = data.id;
+            
+            // Close modal
+            var modal = bootstrap.Modal.getInstance(document.getElementById('addItemModal'));
+            modal.hide();
+            
+            // Show success message
+            var successMsg = fieldName === 'department' || fieldName.includes('department') ? 'Department' : 'Item';
+            alert(successMsg + ' created successfully!');
+            
+            // Trigger change event on select
+            var event = new Event('change');
+            select.dispatchEvent(event);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        errorDiv.textContent = error.error || 'An error occurred. Please try again.';
+        errorDiv.style.display = 'block';
+    })
+    .finally(() => {
+        this.disabled = false;
+        this.innerHTML = 'Create';
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Reset modal when hidden
+document.getElementById('addItemModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('itemFields').innerHTML = '';
+    document.getElementById('itemError').style.display = 'none';
+    document.getElementById('itemError').textContent = '';
+    fieldMap.currentField = null;
+    fieldMap.currentFieldId = null;
+});
+
+// ============================================================
+// TOGGLE FILE REQUIREMENTS BASED ON DIRECTION
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const directionSelect = document.getElementById('id_direction');
+    const outgoingFileInput = document.getElementById('id_outgoing_memo_file');
+    const outgoingFileHelp = document.getElementById('outgoingFileHelp');
+    
+    function updateFileRequirements() {
+        if (directionSelect && outgoingFileInput && outgoingFileHelp) {
+            if (directionSelect.value === 'outgoing') {
+                outgoingFileInput.setAttribute('required', 'required');
+                outgoingFileHelp.textContent = 'Upload the outgoing memo file (PDF, Word, Image) *';
+            } else {
+                outgoingFileInput.removeAttribute('required');
+                outgoingFileHelp.textContent = 'Upload the outgoing memo file (optional for incoming)';
+            }
+        }
+    }
+    
+    if (directionSelect) {
+        directionSelect.addEventListener('change', updateFileRequirements);
+        updateFileRequirements();
+    }
+});
+
+// ============================================================
+// TOGGLE RESPONSE FIELDS
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const requiresResponse = document.getElementById('id_requires_response');
+    const responseDueDate = document.getElementById('id_response_due_date');
+    
+    function toggleResponseFields() {
+        if (requiresResponse && responseDueDate) {
+            if (requiresResponse.checked) {
+                responseDueDate.closest('.mb-3').style.display = 'block';
+                responseDueDate.setAttribute('required', 'required');
+            } else {
+                responseDueDate.closest('.mb-3').style.display = 'none';
+                responseDueDate.removeAttribute('required');
+                responseDueDate.value = '';
+            }
+        }
+    }
+    
+    if (requiresResponse) {
+        requiresResponse.addEventListener('change', toggleResponseFields);
+        toggleResponseFields();
+    }
+});
+
+// ============================================================
+// TOGGLE PERSONNEL REQUIREMENTS
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const requiresInterpreter = document.getElementById('id_requires_interpreter');
+    const requiresTranslator = document.getElementById('id_requires_translator');
+    const numInterpreters = document.getElementById('id_number_of_interpreters');
+    const numTranslators = document.getElementById('id_number_of_translators');
+    
+    function togglePersonnelFields() {
+        if (requiresInterpreter && numInterpreters) {
+            if (requiresInterpreter.checked) {
+                numInterpreters.closest('.mb-3').style.display = 'block';
+                numInterpreters.setAttribute('required', 'required');
+            } else {
+                numInterpreters.closest('.mb-3').style.display = 'none';
+                numInterpreters.removeAttribute('required');
+                numInterpreters.value = '';
+            }
+        }
+        
+        if (requiresTranslator && numTranslators) {
+            if (requiresTranslator.checked) {
+                numTranslators.closest('.mb-3').style.display = 'block';
+                numTranslators.setAttribute('required', 'required');
+            } else {
+                numTranslators.closest('.mb-3').style.display = 'none';
+                numTranslators.removeAttribute('required');
+                numTranslators.value = '';
+            }
+        }
+    }
+    
+    if (requiresInterpreter) {
+        requiresInterpreter.addEventListener('change', togglePersonnelFields);
+    }
+    if (requiresTranslator) {
+        requiresTranslator.addEventListener('change', togglePersonnelFields);
+    }
+    
+    // Initialize on load
+    togglePersonnelFields();
+});
+</script>
+
+<style>
+    /* Custom styles for the form */
+    .card-header h5 {
+        margin-bottom: 0;
+    }
+    .form-check-input {
+        margin-top: 0.3rem;
+    }
+    .d-flex .form-select, .d-flex .form-control {
+        flex: 1;
+    }
+    .btn-outline-primary {
+        white-space: nowrap;
+    }
+    .btn-outline-primary i {
+        font-size: 0.9rem;
+    }
+    .modal-body .form-control, .modal-body .form-select {
+        font-size: 0.95rem;
+    }
+    .badge i {
+        margin-right: 3px;
+    }
+</style>
+{% endblock %}

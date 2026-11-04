@@ -1,0 +1,554 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load personnel_extras %}
+
+{% block extra_css %}
+<!-- DataTables styling (already in base, but we keep) -->
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <h3 class="fw-bold">21st Extraordinary Session on Strengthening of the Mechanisms for Conflict Prevention and Resolution in Africa</h3>
+            <h4 class="fw-bold">Luanda, Angola | 29-30 August</h4>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Personnel</h5>
+                    <h2>{{ total_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Documents Complete</h5>
+                    <h2>{{ complete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Incomplete</h5>
+                    <h2>{{ incomplete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Pending Payment</h5>
+                    <h2>{{ pending_payments|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Export Button -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <button id="exportAllBtn" class="btn btn-success btn-lg">
+                <i class="fas fa-file-excel"></i> Export All to Excel (Both Tables)
+            </button>
+        </div>
+    </div>
+
+    <!-- Grouped Personnel by Meeting -->
+    {% for group in grouped_meetings %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    {{ group.meeting.name }}
+                </h4>
+                <span class="badge bg-light text-dark fs-6">
+                    {{ group.personnel|length }} personnel
+                </span>
+            </div>
+            <div class="mt-1">
+                <small class="text-light">
+                    <i class="fas fa-map-marker-alt me-1"></i> {{ group.meeting.location }}
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-calendar-day me-1"></i> {{ group.meeting.start_date|date:"M d, Y" }} - {{ group.meeting.end_date|date:"M d, Y" }}
+                </small>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover personnel-table" data-meeting="{{ group.meeting.id }}">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Nationality</th>
+                            <th>Designation</th>
+                            <th>City of Departure</th>
+                            <th>Passport Status</th>
+                            <th>Documents</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in group.personnel %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a href="{% url 'personnel-detail' person.id %}">
+                                    <strong>{{ person.full_name }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ person.first_name }}</td>
+                            <td>{{ person.last_name }}</td>
+                            <td>
+                                <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+                            </td>
+                            <td>{{ person.nationality }}</td>
+                            <td>
+                                <span class="badge bg-{% if 'interpreter' in person.designation|lower %}primary{% else %}info{% endif %}">
+                                    {{ person.designation|default:"Interpreter" }}
+                                </span>
+                            </td>
+                            <td>{{ person.city_departure }}</td>
+                            <td>
+                                {% with doc_status=person.get_document_status %}
+                                {% if doc_status.passport.uploaded %}
+                                    <span class="badge bg-success">Uploaded</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Missing</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% with doc_status=person.get_document_status %}
+                                    {% for doc_type, info in doc_status.items %}
+                                        <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }} 
+                                                  text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                           title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}">
+                                        </i>
+                                    {% endfor %}
+                                    {% endwith %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'personnel-detail' person.id %}" 
+                                       class="btn btn-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'upload-document-view' person.id %}" 
+                                       class="btn btn-success" title="Upload Document">
+                                        <i class="fas fa-upload"></i>
+                                    </a>
+                                    <button class="btn btn-primary" 
+                                            onclick="sendReminder({{ person.id }})" 
+                                            title="Send Reminder">
+                                        <i class="fas fa-envelope"></i>
+                                    </button>
+                                    <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" 
+                                       class="btn btn-warning" title="Calculate Payment">
+                                        <i class="fas fa-calculator"></i>
+                                    </a>
+                                    <button class="btn btn-danger" 
+                                            onclick="sendToFinance({{ person.id }})" 
+                                            title="Send to Finance"
+                                            {% if not person.has_all_documents %}disabled{% endif %}>
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="text-center text-dark">
+                                No personnel in this meeting
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Personnel Without Meeting Section -->
+    {% if personnel_without_meeting %}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-circle me-2"></i>
+                    Personnel Without Meeting
+                </h4>
+                <span class="badge bg-light text-dark fs-6">
+                    {{ personnel_without_meeting|length }} personnel
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover personnel-table">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Nationality</th>
+                            <th>Designation</th>
+                            <th>City of Departure</th>
+                            <th>Passport Status</th>
+                            <th>Documents</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in personnel_without_meeting %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a href="{% url 'personnel-detail' person.id %}">
+                                    <strong>{{ person.full_name }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ person.first_name }}</td>
+                            <td>{{ person.last_name }}</td>
+                            <td>
+                                <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+                            </td>
+                            <td>{{ person.nationality }}</td>
+                            <td>
+                                <span class="badge bg-{% if 'interpreter' in person.designation|lower %}primary{% else %}info{% endif %}">
+                                    {{ person.designation|default:"Interpreter" }}
+                                </span>
+                            </td>
+                            <td>{{ person.city_departure }}</td>
+                            <td>
+                                {% with doc_status=person.get_document_status %}
+                                {% if doc_status.passport.uploaded %}
+                                    <span class="badge bg-success">Uploaded</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Missing</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% with doc_status=person.get_document_status %}
+                                    {% for doc_type, info in doc_status.items %}
+                                        <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }} 
+                                                  text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                           title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}">
+                                        </i>
+                                    {% endfor %}
+                                    {% endwith %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'personnel-detail' person.id %}" 
+                                       class="btn btn-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'upload-document-view' person.id %}" 
+                                       class="btn btn-success" title="Upload Document">
+                                        <i class="fas fa-upload"></i>
+                                    </a>
+                                    <button class="btn btn-primary" 
+                                            onclick="sendReminder({{ person.id }})" 
+                                            title="Send Reminder">
+                                        <i class="fas fa-envelope"></i>
+                                    </button>
+                                    <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" 
+                                       class="btn btn-warning" title="Calculate Payment">
+                                        <i class="fas fa-calculator"></i>
+                                    </a>
+                                    <button class="btn btn-danger" 
+                                            onclick="sendToFinance({{ person.id }})" 
+                                            title="Send to Finance"
+                                            {% if not person.has_all_documents %}disabled{% endif %}>
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- DSA Payment Certification Section (Second Sheet) -->
+    <div class="card mt-4">
+        <div class="card-header bg-dark text-white">
+            <h4>DSA PAYMENT CERTIFICATION SHEET</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dsaTable">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Full Name</th>
+                            <th>Nationality</th>
+                            <th>Designation</th>
+                            <th>Meeting</th>
+                            <th>DSA Amount (USD)</th>
+                            <th>Date of Payment</th>
+                            <th>Signature</th>
+                            <th>Authorizing Officer</th>
+                            <th>Finance Officer</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in grouped_meetings %}
+                            {% for person in group.personnel %}
+                            <tr>
+                                <td>{{ forloop.parentloop.counter }}.{{ forloop.counter }}</td>
+                                <td>{{ person.full_name }}</td>
+                                <td>{{ person.nationality }}</td>
+                                <td>{{ person.designation }}</td>
+                                <td>{{ group.meeting.name }}</td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment %}
+                                            ${{ payment.total_amount }}
+                                        {% else %}
+                                            <span class="text-dark fw-semibold">Pending</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment and payment.payment_date %}
+                                            {{ payment.payment_date|date:"Y-m-d" }}
+                                        {% else %}
+                                            <span class="text-dark">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <i class="fas fa-pen text-dark"></i>
+                                </td>
+                                <td>
+                                    <i class="fas fa-pen text-dark"></i>
+                                </td>
+                                <td>
+                                    <i class="fas fa-pen text-dark"></i>
+                                </td>
+                                <td>
+                                    <span class="text-dark">-</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for person in personnel_without_meeting %}
+                        <tr>
+                            <td>U.{{ forloop.counter }}</td>
+                            <td>{{ person.full_name }}</td>
+                            <td>{{ person.nationality }}</td>
+                            <td>{{ person.designation }}</td>
+                            <td><span class="badge bg-secondary">Not Assigned</span></td>
+                            <td>
+                                {% with payment=person.payments.first %}
+                                    {% if payment %}
+                                        ${{ payment.total_amount }}
+                                    {% else %}
+                                        <span class="text-dark fw-semibold">Pending</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with payment=person.payments.first %}
+                                    {% if payment and payment.payment_date %}
+                                        {{ payment.payment_date|date:"Y-m-d" }}
+                                    {% else %}
+                                        <span class="text-dark">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <i class="fas fa-pen text-dark"></i>
+                            </td>
+                            <td>
+                                <i class="fas fa-pen text-dark"></i>
+                            </td>
+                            <td>
+                                <i class="fas fa-pen text-dark"></i>
+                            </td>
+                            <td>
+                                <span class="text-dark">-</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not grouped_meetings and not personnel_without_meeting %}
+                        <tr>
+                            <td colspan="11" class="text-center text-dark">No personnel found</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JS Libraries for Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+    // ----- Your existing helper functions -----
+    function sendReminder(personnelId) {
+        if (confirm('Send document reminder to this personnel?')) {
+            fetch(`/api/personnel/${personnelId}/send-reminder/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Reminder sent successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error sending reminder: ' + error);
+            });
+        }
+    }
+
+    function sendToFinance(personnelId) {
+        if (confirm('Send this personnel\'s documents to finance?')) {
+            fetch(`/api/personnel/${personnelId}/send-to-finance/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message || 'Sent to finance successfully!');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // ----- Single Export Button Logic -----
+    document.getElementById('exportAllBtn').addEventListener('click', function() {
+        // Get all personnel tables
+        var personnelTables = document.querySelectorAll('.personnel-table');
+        var dsaTable = document.getElementById('dsaTable').cloneNode(true);
+
+        // Create workbook
+        var wb = XLSX.utils.book_new();
+
+        // Process each personnel table
+        personnelTables.forEach(function(table, index) {
+            var clone = table.cloneNode(true);
+            // Remove Actions column
+            var rows = clone.querySelectorAll('tr');
+            rows.forEach(function(row) {
+                var cells = row.querySelectorAll('th, td');
+                if (cells.length > 0) {
+                    row.removeChild(cells[cells.length - 1]);
+                }
+            });
+            clone.classList.remove('dataTable');
+            clone.removeAttribute('role');
+            clone.removeAttribute('aria-describedby');
+            
+            // Get meeting name from data attribute or card header
+            var meetingName = 'Personnel';
+            var card = table.closest('.card');
+            if (card) {
+                var header = card.querySelector('.card-header h4');
+                if (header) {
+                    meetingName = header.textContent.trim();
+                }
+            }
+            
+            var ws = XLSX.utils.table_to_sheet(clone);
+            XLSX.utils.book_append_sheet(wb, ws, meetingName.substring(0, 31));
+        });
+
+        // Process DSA table
+        dsaTable.classList.remove('dataTable');
+        dsaTable.removeAttribute('role');
+        dsaTable.removeAttribute('aria-describedby');
+        var ws2 = XLSX.utils.table_to_sheet(dsaTable);
+        XLSX.utils.book_append_sheet(wb, ws2, 'DSA');
+
+        // Export
+        XLSX.writeFile(wb, 'Interpreters_and_DSA_Report.xlsx');
+    });
+
+    // ----- DataTables Initialization (for sorting/filtering) -----
+    $(document).ready(function() {
+        if ($.fn.DataTable) {
+            // Initialize each personnel table
+            $('.personnel-table').each(function() {
+                $(this).DataTable({
+                    pageLength: 25,
+                    responsive: true,
+                    order: [[0, 'asc']],
+                    columnDefs: [
+                        { targets: [-1], orderable: false, searchable: false } // Actions column
+                    ]
+                });
+            });
+
+            // DSA Table
+            $('#dsaTable').DataTable({
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']]
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,1290 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load personnel_extras %}
+
+{% block extra_css %}
+<!-- DataTables styling -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <!-- DEBUG SECTION - Remove after fixing -->
+    <div class="alert alert-info alert-dismissible">
+        <h5>Debug Info:</h5>
+        <ul>
+            <li>Total Personnel: {{ total_count }}</li>
+            <li>Grouped Meetings Count: {{ grouped_meetings|length }}</li>
+            {% for group in grouped_meetings %}
+                <li>
+                    Meeting: {{ group.meeting.name }} - 
+                    Translators: {{ group.translators|length }}, 
+                    Interpreters: {{ group.interpreters|length }}, 
+                    Coordination: {{ group.coordination|length }},
+                    Total: {{ group.total }}
+                </li>
+            {% empty %}
+                <li><strong>No meetings found!</strong></li>
+            {% endfor %}
+            <li>Personnel without meeting: {{ personnel_without_meeting|length }}</li>
+        </ul>
+    </div>
+    <!-- END DEBUG SECTION -->
+    
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <h3 class="fw-bold">{{ meeting_name }}</h3>
+            <h4 class="fw-bold">{{ meeting_location }} | {{ meeting_dates }}</h4>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Personnel</h5>
+                    <h2>{{ total_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Documents Complete</h5>
+                    <h2>{{ complete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Incomplete</h5>
+                    <h2>{{ incomplete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Pending Payment</h5>
+                    <h2>{{ pending_payments|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="{% url 'meeting-create' %}" class="btn btn-success">
+                    <i class="fas fa-calendar-plus"></i> New Meeting
+                </a>
+                <a href="{% url 'personnel-add' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Add Personnel
+                </a>
+                <button id="exportAllBtn" class="btn btn-info">
+                    <i class="fas fa-file-excel"></i> Export All to Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grouped Personnel by Meeting -->
+    {% for group in grouped_meetings %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    {{ group.meeting.name }}
+                </h4>
+                <span class="badge bg-light text-dark fs-6">
+                    {{ group.total }} personnel
+                </span>
+            </div>
+            <div class="mt-1">
+                <small class="text-light">
+                    <i class="fas fa-map-marker-alt me-1"></i> {{ group.meeting.location }}
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-calendar-day me-1"></i> {{ group.meeting.start_date|date:"M d, Y" }} - {{ group.meeting.end_date|date:"M d, Y" }}
+                </small>
+            </div>
+        </div>
+        <div class="card-body">
+            
+            <!-- ============================================================ -->
+            <!-- TRANSLATORS SECTION -->
+            <!-- ============================================================ -->
+            {% if group.translators %}
+            <div class="mb-4">
+                <h5 class="text-primary">
+                    <i class="fas fa-language"></i> Translators
+                    <span class="badge bg-primary">{{ group.translators|length }}</span>
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover personnel-table" data-meeting="{{ group.meeting.id }}">
+                        <thead class="bg-light text-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Nationality</th>
+                                <th>Designation</th>
+                                <th>City of Departure</th>
+                                <th>Passport Status</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person in group.translators %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'personnel-detail' person.id %}">
+                                        <strong>{{ person.full_name }}</strong>
+                                    </a>
+                                </td>
+                                <td>{{ person.first_name }}</td>
+                                <td>{{ person.last_name }}</td>
+                                <td>
+                                    <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+                                </td>
+                                <td>{{ person.nationality }}</td>
+                                <td>
+                                    <span class="badge bg-primary">
+                                        {{ person.designation|default:"Translator" }}
+                                    </span>
+                                </td>
+                                <td>{{ person.city_departure }}</td>
+                                <td>
+                                    {% with doc_status=person.get_document_status %}
+                                    {% if doc_status.passport.uploaded %}
+                                        <span class="badge bg-success">Uploaded</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Missing</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        {% with doc_status=person.get_document_status %}
+                                        {% for doc_type, info in doc_status.items %}
+                                            <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }} 
+                                                      text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                               title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}">
+                                            </i>
+                                        {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'personnel-detail' person.id %}" 
+                                           class="btn btn-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'personnel-edit' person.id %}" 
+                                           class="btn btn-warning" title="Edit Personnel">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'upload-document-view' person.id %}" 
+                                           class="btn btn-success" title="Upload Document">
+                                            <i class="fas fa-upload"></i>
+                                        </a>
+                                        <button class="btn btn-primary" 
+                                                onclick="sendReminder({{ person.id }})" 
+                                                title="Send Reminder">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                        <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" 
+                                           class="btn btn-secondary" title="Calculate Payment">
+                                            <i class="fas fa-calculator"></i>
+                                        </a>
+                                        <button class="btn btn-danger" 
+                                                onclick="sendToFinance({{ person.id }})" 
+                                                title="Send to Finance"
+                                                {% if not person.has_all_documents %}disabled{% endif %}>
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ============================================================ -->
+            <!-- INTERPRETERS SECTION -->
+            <!-- ============================================================ -->
+            {% if group.interpreters %}
+            <div class="mb-4">
+                <h5 class="text-success">
+                    <i class="fas fa-microphone"></i> Interpreters
+                    <span class="badge bg-success">{{ group.interpreters|length }}</span>
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover personnel-table" data-meeting="{{ group.meeting.id }}">
+                        <thead class="bg-light text-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Nationality</th>
+                                <th>Designation</th>
+                                <th>City of Departure</th>
+                                <th>Passport Status</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person in group.interpreters %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'personnel-detail' person.id %}">
+                                        <strong>{{ person.full_name }}</strong>
+                                    </a>
+                                </td>
+                                <td>{{ person.first_name }}</td>
+                                <td>{{ person.last_name }}</td>
+                                <td>
+                                    <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+                                </td>
+                                <td>{{ person.nationality }}</td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        {{ person.designation|default:"Interpreter" }}
+                                    </span>
+                                </td>
+                                <td>{{ person.city_departure }}</td>
+                                <td>
+                                    {% with doc_status=person.get_document_status %}
+                                    {% if doc_status.passport.uploaded %}
+                                        <span class="badge bg-success">Uploaded</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Missing</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        {% with doc_status=person.get_document_status %}
+                                        {% for doc_type, info in doc_status.items %}
+                                            <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }} 
+                                                      text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                               title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}">
+                                            </i>
+                                        {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'personnel-detail' person.id %}" 
+                                           class="btn btn-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'personnel-edit' person.id %}" 
+                                           class="btn btn-warning" title="Edit Personnel">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'upload-document-view' person.id %}" 
+                                           class="btn btn-success" title="Upload Document">
+                                            <i class="fas fa-upload"></i>
+                                        </a>
+                                        <button class="btn btn-primary" 
+                                                onclick="sendReminder({{ person.id }})" 
+                                                title="Send Reminder">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                        <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" 
+                                           class="btn btn-secondary" title="Calculate Payment">
+                                            <i class="fas fa-calculator"></i>
+                                        </a>
+                                        <button class="btn btn-danger" 
+                                                onclick="sendToFinance({{ person.id }})" 
+                                                title="Send to Finance"
+                                                {% if not person.has_all_documents %}disabled{% endif %}>
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ============================================================ -->
+            <!-- COORDINATION TEAM SECTION -->
+            <!-- ============================================================ -->
+            {% if group.coordination %}
+            <div class="mb-4">
+                <h5 class="text-warning">
+                    <i class="fas fa-users-cog"></i> Coordination Team
+                    <span class="badge bg-warning text-dark">{{ group.coordination|length }}</span>
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover personnel-table" data-meeting="{{ group.meeting.id }}">
+                        <thead class="bg-light text-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Nationality</th>
+                                <th>Designation</th>
+                                <th>City of Departure</th>
+                                <th>Passport Status</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person in group.coordination %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'personnel-detail' person.id %}">
+                                        <strong>{{ person.full_name }}</strong>
+                                    </a>
+                                </td>
+                                <td>{{ person.first_name }}</td>
+                                <td>{{ person.last_name }}</td>
+                                <td>
+                                    <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+                                </td>
+                                <td>{{ person.nationality }}</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">
+                                        {{ person.designation|default:"Coordination" }}
+                                    </span>
+                                </td>
+                                <td>{{ person.city_departure }}</td>
+                                <td>
+                                    {% with doc_status=person.get_document_status %}
+                                    {% if doc_status.passport.uploaded %}
+                                        <span class="badge bg-success">Uploaded</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Missing</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        {% with doc_status=person.get_document_status %}
+                                        {% for doc_type, info in doc_status.items %}
+                                            <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }} 
+                                                      text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                               title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}">
+                                            </i>
+                                        {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'personnel-detail' person.id %}" 
+                                           class="btn btn-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'personnel-edit' person.id %}" 
+                                           class="btn btn-warning" title="Edit Personnel">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'upload-document-view' person.id %}" 
+                                           class="btn btn-success" title="Upload Document">
+                                            <i class="fas fa-upload"></i>
+                                        </a>
+                                        <button class="btn btn-primary" 
+                                                onclick="sendReminder({{ person.id }})" 
+                                                title="Send Reminder">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                        <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" 
+                                           class="btn btn-secondary" title="Calculate Payment">
+                                            <i class="fas fa-calculator"></i>
+                                        </a>
+                                        <button class="btn btn-danger" 
+                                                onclick="sendToFinance({{ person.id }})" 
+                                                title="Send to Finance"
+                                                {% if not person.has_all_documents %}disabled{% endif %}>
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not group.translators and not group.interpreters and not group.coordination %}
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-info-circle"></i> No personnel in this meeting
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Personnel Without Meeting Section -->
+    {% if personnel_without_meeting %}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-circle me-2"></i>
+                    Personnel Without Meeting
+                </h4>
+                <span class="badge bg-light text-dark fs-6">
+                    {{ personnel_without_meeting|length }} personnel
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover personnel-table">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Nationality</th>
+                            <th>Designation</th>
+                            <th>City of Departure</th>
+                            <th>Passport Status</th>
+                            <th>Documents</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in personnel_without_meeting %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a href="{% url 'personnel-detail' person.id %}">
+                                    <strong>{{ person.full_name }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ person.first_name }}</td>
+                            <td>{{ person.last_name }}</td>
+                            <td>
+                                <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+                            </td>
+                            <td>{{ person.nationality }}</td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ person.designation|default:"Unassigned" }}
+                                </span>
+                            </td>
+                            <td>{{ person.city_departure }}</td>
+                            <td>
+                                {% with doc_status=person.get_document_status %}
+                                {% if doc_status.passport.uploaded %}
+                                    <span class="badge bg-success">Uploaded</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Missing</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% with doc_status=person.get_document_status %}
+                                    {% for doc_type, info in doc_status.items %}
+                                        <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }} 
+                                                  text-{{ info.uploaded|yesno:'success,danger' }}" 
+                                           title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}">
+                                        </i>
+                                    {% endfor %}
+                                    {% endwith %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'personnel-detail' person.id %}" 
+                                       class="btn btn-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'personnel-edit' person.id %}" 
+                                       class="btn btn-warning" title="Edit Personnel">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'upload-document-view' person.id %}" 
+                                       class="btn btn-success" title="Upload Document">
+                                        <i class="fas fa-upload"></i>
+                                    </a>
+                                    <button class="btn btn-primary" 
+                                            onclick="sendReminder({{ person.id }})" 
+                                            title="Send Reminder">
+                                        <i class="fas fa-envelope"></i>
+                                    </button>
+                                    <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" 
+                                       class="btn btn-secondary" title="Calculate Payment">
+                                        <i class="fas fa-calculator"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- DSA Payment Certification Section (Second Sheet) -->
+    <div class="card mt-4">
+        <div class="card-header bg-dark text-white">
+            <h4>DSA PAYMENT CERTIFICATION SHEET</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dsaTable">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Full Name</th>
+                            <th>Nationality</th>
+                            <th>Designation</th>
+                            <th>Meeting</th>
+                            <th>DSA Amount (USD)</th>
+                            <th>Date of Payment</th>
+                            <th>Signature</th>
+                            <th>Authorizing Officer</th>
+                            <th>Finance Officer</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in grouped_meetings %}
+                            <!-- Translators -->
+                            {% for person in group.translators %}
+                            <tr>
+                                <td>T{{ forloop.counter }}</td>
+                                <td>{{ person.full_name }}</td>
+                                <td>{{ person.nationality }}</td>
+                                <td>{{ person.designation }}</td>
+                                <td>{{ group.meeting.name }}</td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment %}
+                                            ${{ payment.total_amount }}
+                                        {% else %}
+                                            <span class="text-dark fw-semibold">Pending</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment and payment.payment_date %}
+                                            {{ payment.payment_date|date:"Y-m-d" }}
+                                        {% else %}
+                                            <span class="text-dark">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><span class="text-dark">-</span></td>
+                            </tr>
+                            {% endfor %}
+                            <!-- Interpreters -->
+                            {% for person in group.interpreters %}
+                            <tr>
+                                <td>I{{ forloop.counter }}</td>
+                                <td>{{ person.full_name }}</td>
+                                <td>{{ person.nationality }}</td>
+                                <td>{{ person.designation }}</td>
+                                <td>{{ group.meeting.name }}</td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment %}
+                                            ${{ payment.total_amount }}
+                                        {% else %}
+                                            <span class="text-dark fw-semibold">Pending</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment and payment.payment_date %}
+                                            {{ payment.payment_date|date:"Y-m-d" }}
+                                        {% else %}
+                                            <span class="text-dark">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><span class="text-dark">-</span></td>
+                            </tr>
+                            {% endfor %}
+                            <!-- Coordination Team -->
+                            {% for person in group.coordination %}
+                            <tr>
+                                <td>C{{ forloop.counter }}</td>
+                                <td>{{ person.full_name }}</td>
+                                <td>{{ person.nationality }}</td>
+                                <td>{{ person.designation }}</td>
+                                <td>{{ group.meeting.name }}</td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment %}
+                                            ${{ payment.total_amount }}
+                                        {% else %}
+                                            <span class="text-dark fw-semibold">Pending</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment and payment.payment_date %}
+                                            {{ payment.payment_date|date:"Y-m-d" }}
+                                        {% else %}
+                                            <span class="text-dark">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><span class="text-dark">-</span></td>
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for person in personnel_without_meeting %}
+                        <tr>
+                            <td>U.{{ forloop.counter }}</td>
+                            <td>{{ person.full_name }}</td>
+                            <td>{{ person.nationality }}</td>
+                            <td>{{ person.designation }}</td>
+                            <td><span class="badge bg-secondary">Not Assigned</span></td>
+                            <td>
+                                {% with payment=person.payments.first %}
+                                    {% if payment %}
+                                        ${{ payment.total_amount }}
+                                    {% else %}
+                                        <span class="text-dark fw-semibold">Pending</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with payment=person.payments.first %}
+                                    {% if payment and payment.payment_date %}
+                                        {{ payment.payment_date|date:"Y-m-d" }}
+                                    {% else %}
+                                        <span class="text-dark">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td><i class="fas fa-pen text-dark"></i></td>
+                            <td><i class="fas fa-pen text-dark"></i></td>
+                            <td><i class="fas fa-pen text-dark"></i></td>
+                            <td><span class="text-dark">-</span></td>
+                        </tr>
+                        {% endfor %}
+                        {% if not grouped_meetings and not personnel_without_meeting %}
+                        <tr>
+                            <td colspan="11" class="text-center text-dark">No personnel found</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCRIPTS - WORKING EXPORT FUNCTIONALITY -->
+<!-- ============================================================ -->
+<!-- jQuery first -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<!-- XLSX Library for Excel Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function sendReminder(personnelId) {
+        if (confirm('Send document reminder to this personnel?')) {
+            fetch(`/api/personnel/${personnelId}/send-reminder/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Reminder sent successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error sending reminder: ' + error);
+            });
+        }
+    }
+
+    function sendToFinance(personnelId) {
+        if (confirm('Send this personnel\'s documents to finance?')) {
+            fetch(`/api/personnel/${personnelId}/send-to-finance/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message || 'Sent to finance successfully!');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    }
+
+    <!-- ============================================================ -->
+<!-- SCRIPTS - COMPLETE EXPORT FUNCTIONALITY -->
+<!-- ============================================================ -->
+<!-- jQuery first -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<!-- XLSX Library for Excel Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function sendReminder(personnelId) {
+        if (confirm('Send document reminder to this personnel?')) {
+            fetch(`/api/personnel/${personnelId}/send-reminder/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Reminder sent successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error sending reminder: ' + error);
+            });
+        }
+    }
+
+    function sendToFinance(personnelId) {
+        if (confirm('Send this personnel\'s documents to finance?')) {
+            fetch(`/api/personnel/${personnelId}/send-to-finance/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message || 'Sent to finance successfully!');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    }
+
+    // ============================================================
+    // COMPLETE EXPORT - Captures ALL tables
+    // ============================================================
+    function exportToExcel() {
+        console.log('=== Export function started ===');
+        
+        try {
+            var wb = XLSX.utils.book_new();
+            var sheetsAdded = 0;
+            var errors = [];
+
+            // =============================================
+            // 1. Find ALL meeting cards
+            // =============================================
+            var meetingCards = document.querySelectorAll('.card.mb-4');
+            console.log('Found ' + meetingCards.length + ' meeting cards');
+            
+            if (meetingCards.length === 0) {
+                // Try alternative selector
+                meetingCards = document.querySelectorAll('.card');
+                console.log('Alternative selector found ' + meetingCards.length + ' cards');
+            }
+
+            // =============================================
+            // 2. Process each meeting card
+            // =============================================
+            meetingCards.forEach(function(card, cardIndex) {
+                try {
+                    // Get meeting name from card header
+                    var meetingName = 'Meeting_' + (cardIndex + 1);
+                    var header = card.querySelector('.card-header h4');
+                    if (header) {
+                        meetingName = header.textContent.trim();
+                    }
+                    
+                    // Find ALL tables within this card's body
+                    var cardBody = card.querySelector('.card-body');
+                    if (!cardBody) return;
+                    
+                    // Find all tables in the card body
+                    var allTables = cardBody.querySelectorAll('table.table');
+                    console.log('Card ' + (cardIndex + 1) + ' (' + meetingName + ') has ' + allTables.length + ' tables');
+                    
+                    if (allTables.length === 0) {
+                        console.warn('No tables found in card ' + (cardIndex + 1));
+                        return;
+                    }
+                    
+                    // Process each table in this card
+                    allTables.forEach(function(table, tableIndex) {
+                        try {
+                            // Find the category heading for this table
+                            var categoryName = '';
+                            var parentDiv = table.closest('.mb-4');
+                            if (parentDiv) {
+                                var heading = parentDiv.querySelector('h5.text-primary, h5.text-success, h5.text-warning');
+                                if (heading) {
+                                    categoryName = heading.textContent.trim();
+                                }
+                            }
+                            
+                            // If no category found, try to find it from previous sibling
+                            if (!categoryName) {
+                                var prevElement = table.parentNode;
+                                while (prevElement && prevElement.previousElementSibling) {
+                                    prevElement = prevElement.previousElementSibling;
+                                    if (prevElement.tagName === 'H5') {
+                                        categoryName = prevElement.textContent.trim();
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            console.log('  Processing table ' + (tableIndex + 1) + ': ' + categoryName);
+                            
+                            // Clone the table
+                            var clone = table.cloneNode(true);
+                            
+                            // Remove DataTable artifacts
+                            clone.classList.remove('dataTable');
+                            clone.removeAttribute('role');
+                            clone.removeAttribute('aria-describedby');
+                            clone.removeAttribute('style');
+                            
+                            // Remove any DataTable wrapper elements inside
+                            var dataTableElements = clone.querySelectorAll('.dataTables_empty, .dataTables_info, .dataTables_paginate, .dataTables_filter, .dataTables_length, .dataTables_processing');
+                            dataTableElements.forEach(function(el) {
+                                if (el.parentNode) {
+                                    el.parentNode.removeChild(el);
+                                }
+                            });
+                            
+                            // Remove the Actions column (last column)
+                            // From thead
+                            var thead = clone.querySelector('thead');
+                            if (thead) {
+                                var headerRows = thead.querySelectorAll('tr');
+                                headerRows.forEach(function(row) {
+                                    var ths = row.querySelectorAll('th');
+                                    if (ths.length > 0) {
+                                        var lastTh = ths[ths.length - 1];
+                                        if (lastTh.textContent.trim().toLowerCase().includes('action') || 
+                                            lastTh.textContent.trim().toLowerCase().includes('actions')) {
+                                            row.removeChild(lastTh);
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            // From tbody
+                            var tbody = clone.querySelector('tbody');
+                            if (tbody) {
+                                var rows = tbody.querySelectorAll('tr');
+                                rows.forEach(function(row) {
+                                    var tds = row.querySelectorAll('td');
+                                    if (tds.length > 0) {
+                                        var lastTd = tds[tds.length - 1];
+                                        // Check if it's the actions column (contains buttons)
+                                        if (lastTd.querySelector('.btn-group') || lastTd.querySelector('.btn')) {
+                                            row.removeChild(lastTd);
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            // Create sheet name
+                            var sheetName = meetingName.substring(0, 20);
+                            if (categoryName) {
+                                // Clean category name (remove count)
+                                var catClean = categoryName.replace(/\s*\(\d+\)\s*/, '').trim();
+                                sheetName = sheetName + ' - ' + catClean.substring(0, 15);
+                            } else {
+                                sheetName = sheetName + ' - Table_' + (tableIndex + 1);
+                            }
+                            // Ensure sheet name is not too long
+                            sheetName = sheetName.substring(0, 31);
+                            
+                            // Convert to worksheet
+                            var ws = XLSX.utils.table_to_sheet(clone);
+                            
+                            // Auto-size columns
+                            var colWidths = [];
+                            var allRows = clone.querySelectorAll('tr');
+                            allRows.forEach(function(row) {
+                                var cells = row.querySelectorAll('th, td');
+                                cells.forEach(function(cell, colIndex) {
+                                    var text = cell.textContent ? cell.textContent.length : 10;
+                                    if (!colWidths[colIndex] || text > colWidths[colIndex]) {
+                                        colWidths[colIndex] = Math.min(text + 5, 50);
+                                    }
+                                });
+                            });
+                            
+                            if (colWidths.length > 0) {
+                                ws['!cols'] = colWidths.map(function(w) {
+                                    return { wch: Math.max(w, 12) };
+                                });
+                            }
+                            
+                            // Add to workbook
+                            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                            sheetsAdded++;
+                            console.log('  ✓ Sheet added: ' + sheetName);
+                            
+                        } catch (error) {
+                            console.error('Error processing table:', error);
+                            errors.push('Table error: ' + error.message);
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Error processing card:', error);
+                    errors.push('Card error: ' + error.message);
+                }
+            });
+
+            // =============================================
+            // 3. Also process Personnel Without Meeting card
+            // =============================================
+            var noMeetingCard = document.querySelector('.card-header.bg-secondary')?.closest('.card');
+            if (noMeetingCard) {
+                try {
+                    console.log('Processing Personnel Without Meeting card');
+                    var tables = noMeetingCard.querySelectorAll('table.table');
+                    tables.forEach(function(table, index) {
+                        var clone = table.cloneNode(true);
+                        clone.classList.remove('dataTable');
+                        clone.removeAttribute('role');
+                        clone.removeAttribute('aria-describedby');
+                        
+                        // Remove Actions column
+                        var thead = clone.querySelector('thead');
+                        if (thead) {
+                            var headerRows = thead.querySelectorAll('tr');
+                            headerRows.forEach(function(row) {
+                                var ths = row.querySelectorAll('th');
+                                if (ths.length > 0) {
+                                    var lastTh = ths[ths.length - 1];
+                                    if (lastTh.textContent.trim().toLowerCase().includes('action')) {
+                                        row.removeChild(lastTh);
+                                    }
+                                }
+                            });
+                        }
+                        
+                        var tbody = clone.querySelector('tbody');
+                        if (tbody) {
+                            var rows = tbody.querySelectorAll('tr');
+                            rows.forEach(function(row) {
+                                var tds = row.querySelectorAll('td');
+                                if (tds.length > 0) {
+                                    var lastTd = tds[tds.length - 1];
+                                    if (lastTd.querySelector('.btn-group') || lastTd.querySelector('.btn')) {
+                                        row.removeChild(lastTd);
+                                    }
+                                }
+                            });
+                        }
+                        
+                        var ws = XLSX.utils.table_to_sheet(clone);
+                        XLSX.utils.book_append_sheet(wb, ws, 'Personnel_Without_Meeting');
+                        sheetsAdded++;
+                        console.log('✓ Sheet added: Personnel Without Meeting');
+                    });
+                } catch (error) {
+                    console.error('Error processing no meeting card:', error);
+                }
+            }
+
+            // =============================================
+            // 4. Get the DSA Table
+            // =============================================
+            var dsaTable = document.getElementById('dsaTable');
+            if (dsaTable) {
+                try {
+                    console.log('Processing DSA table...');
+                    
+                    var dsaClone = dsaTable.cloneNode(true);
+                    dsaClone.classList.remove('dataTable');
+                    dsaClone.removeAttribute('role');
+                    dsaClone.removeAttribute('aria-describedby');
+                    
+                    var dataTableElements = dsaClone.querySelectorAll('.dataTables_empty, .dataTables_info, .dataTables_paginate, .dataTables_filter, .dataTables_length');
+                    dataTableElements.forEach(function(el) {
+                        if (el.parentNode) {
+                            el.parentNode.removeChild(el);
+                        }
+                    });
+                    
+                    var ws = XLSX.utils.table_to_sheet(dsaClone);
+                    
+                    // Auto-size columns
+                    var colWidths = [];
+                    var rows = dsaClone.querySelectorAll('tr');
+                    rows.forEach(function(row) {
+                        var cells = row.querySelectorAll('th, td');
+                        cells.forEach(function(cell, colIndex) {
+                            var text = cell.textContent ? cell.textContent.length : 10;
+                            if (!colWidths[colIndex] || text > colWidths[colIndex]) {
+                                colWidths[colIndex] = Math.min(text + 5, 50);
+                            }
+                        });
+                    });
+                    
+                    if (colWidths.length > 0) {
+                        ws['!cols'] = colWidths.map(function(w) {
+                            return { wch: Math.max(w, 12) };
+                        });
+                    }
+                    
+                    XLSX.utils.book_append_sheet(wb, ws, 'DSA_Certification');
+                    sheetsAdded++;
+                    console.log('✓ DSA sheet added');
+                    
+                } catch (error) {
+                    console.error('Error processing DSA table:', error);
+                    errors.push('DSA table: ' + error.message);
+                }
+            } else {
+                console.warn('DSA table not found');
+            }
+
+            // =============================================
+            // 5. Check if we have any data
+            // =============================================
+            if (sheetsAdded === 0) {
+                var errorMsg = 'No data found to export.\n\n';
+                errorMsg += 'Please make sure:\n';
+                errorMsg += '1. There is data in the tables\n';
+                errorMsg += '2. Tables have the class "table" or "personnel-table"\n\n';
+                errorMsg += 'Errors:\n' + errors.join('\n');
+                alert(errorMsg);
+                return;
+            }
+
+            // =============================================
+            // 6. Generate filename and export
+            // =============================================
+            var now = new Date();
+            var timestamp = now.getFullYear() + '-' + 
+                           String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                           String(now.getDate()).padStart(2, '0') + '_' +
+                           String(now.getHours()).padStart(2, '0') + '-' +
+                           String(now.getMinutes()).padStart(2, '0');
+            
+            var filename = 'Personnel_Complete_Report_' + timestamp + '.xlsx';
+            
+            XLSX.writeFile(wb, filename);
+            
+            var msg = '✓ Export completed successfully!\n\n';
+            msg += 'File: ' + filename + '\n';
+            msg += 'Sheets exported: ' + sheetsAdded;
+            if (errors.length > 0) {
+                msg += '\n\nWarnings:\n' + errors.join('\n');
+            }
+            alert(msg);
+            console.log('=== Export completed successfully ===');
+            
+        } catch (error) {
+            console.error('=== Export error ===', error);
+            alert('Export error: ' + error.message + '\n\nCheck console for details (F12).');
+        }
+    }
+
+    // ============================================================
+    // INITIALIZATION
+    // ============================================================
+    (function() {
+        console.log('=== Page initializing ===');
+        
+        // Setup export button
+        function setupExportButton() {
+            var exportBtn = document.getElementById('exportAllBtn');
+            if (exportBtn) {
+                console.log('Export button found');
+                
+                // Remove all existing listeners
+                var newBtn = exportBtn.cloneNode(true);
+                exportBtn.parentNode.replaceChild(newBtn, exportBtn);
+                
+                // Add click handler
+                newBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('=== Export button clicked ===');
+                    exportToExcel();
+                });
+                
+                console.log('✓ Export button ready');
+                return true;
+            } else {
+                console.error('✗ Export button not found!');
+                return false;
+            }
+        }
+
+        // Try immediately
+        setupExportButton();
+
+        // Also try after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setupExportButton();
+            });
+        }
+
+        // Also try on window load
+        window.addEventListener('load', function() {
+            setupExportButton();
+        });
+
+        // Initialize DataTables
+        if (typeof $ !== 'undefined' && $.fn.DataTable) {
+            console.log('Initializing DataTables...');
+            
+            try {
+                $('.personnel-table').each(function() {
+                    if (!$.fn.DataTable.isDataTable(this)) {
+                        $(this).DataTable({
+                            pageLength: 25,
+                            responsive: true,
+                            order: [[0, 'asc']],
+                            columnDefs: [
+                                { targets: [-1], orderable: false, searchable: false }
+                            ]
+                        });
+                    }
+                });
+                console.log('✓ Personnel tables initialized');
+            } catch (error) {
+                console.error('DataTable init error:', error);
+            }
+
+            try {
+                if (!$.fn.DataTable.isDataTable('#dsaTable')) {
+                    $('#dsaTable').DataTable({
+                        pageLength: 25,
+                        responsive: true,
+                        order: [[0, 'asc']]
+                    });
+                }
+                console.log('✓ DSA table initialized');
+            } catch (error) {
+                console.error('DSA DataTable init error:', error);
+            }
+        } else {
+            console.warn('jQuery or DataTables not available');
+        }
+        
+        console.log('=== Page initialization complete ===');
+    })();
+</script>
+{% endblock %}

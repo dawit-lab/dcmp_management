@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-cog"></i> Payment Rate Settings</h1>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+            <hr>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Note:</strong> These rates are used to calculate payments for all personnel. 
+                Changes will affect all future payment calculations. Current rates are shown below.
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Translator Rates -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h4><i class="fas fa-language"></i> Translator Rates</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Rate Type</th>
+                                                <th>Value (USD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for key, rate in rates.items %}
+                                                {% if 'translator' in key %}
+                                                <tr>
+                                                    <td>{{ rate.label }}</td>
+                                                    <td>
+                                                        <input type="number" 
+                                                               name="rate_{{ key }}" 
+                                                               value="{{ rate.value|floatformat:2 }}"
+                                                               step="0.01"
+                                                               min="0"
+                                                               class="form-control form-control-sm"
+                                                               style="width: 150px;">
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Interpreter Rates -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-success text-white">
+                                <h4><i class="fas fa-microphone"></i> Interpreter Rates</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Rate Type</th>
+                                                <th>Value (USD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for key, rate in rates.items %}
+                                                {% if 'interpreter' in key %}
+                                                <tr>
+                                                    <td>{{ rate.label }}</td>
+                                                    <td>
+                                                        <input type="number" 
+                                                               name="rate_{{ key }}" 
+                                                               value="{{ rate.value|floatformat:2 }}"
+                                                               step="0.01"
+                                                               min="0"
+                                                               class="form-control form-control-sm"
+                                                               style="width: 150px;">
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Allowances -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-warning text-dark">
+                                <h4><i class="fas fa-plus-circle"></i> Additional Allowances (Freelance Interpreters)</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Rate Type</th>
+                                                <th>Value (USD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for key, rate in rates.items %}
+                                                {% if 'terminal_expenses' in key or 'visa_fee' in key or 'other_allowance' in key or 'standby' in key or 'traveling' in key %}
+                                                <tr>
+                                                    <td>{{ rate.label }}</td>
+                                                    <td>
+                                                        <input type="number" 
+                                                               name="rate_{{ key }}" 
+                                                               value="{{ rate.value|floatformat:2 }}"
+                                                               step="0.01"
+                                                               min="0"
+                                                               class="form-control form-control-sm"
+                                                               style="width: 150px;">
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Air Ticket Rates -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h4><i class="fas fa-plane"></i> Air Ticket Rates (Freelance Interpreters)</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Rate Type</th>
+                                                <th>Value (USD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for key, rate in rates.items %}
+                                                {% if 'air_ticket' in key or 'long_distance_travel_bonus' in key %}
+                                                <tr>
+                                                    <td>{{ rate.label }}</td>
+                                                    <td>
+                                                        <input type="number" 
+                                                               name="rate_{{ key }}" 
+                                                               value="{{ rate.value|floatformat:2 }}"
+                                                               step="0.01"
+                                                               min="0"
+                                                               class="form-control form-control-sm"
+                                                               style="width: 150px;">
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Save All Rates
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

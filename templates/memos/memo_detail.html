@@ -1,0 +1,446 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>
+                    <i class="fas fa-file-alt"></i> 
+                    {{ memo.reference_number }}
+                </h1>
+                <div>
+                    <a href="{% url 'memo-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                    <a href="{% url 'memo-edit' memo.id %}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    {% if not memo.is_completed %}
+                    <a href="{% url 'memo-complete' memo.id %}" class="btn btn-success" onclick="return confirm('Mark this memo as completed?')">
+                        <i class="fas fa-check"></i> Mark Complete
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'memo-delete' memo.id %}" class="btn btn-danger" onclick="return confirm('Delete this memo?')">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">{{ memo.subject }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Content:</strong>
+                                <p>{{ memo.content|linebreaks }}</p>
+                            </div>
+                            
+                            {% if memo.summary %}
+                            <div class="mb-3">
+                                <strong>Summary:</strong>
+                                <p>{{ memo.summary|linebreaks }}</p>
+                            </div>
+                            {% endif %}
+
+                            {% if memo.action_items %}
+                            <div class="mb-3">
+                                <strong>Action Items:</strong>
+                                <p>{{ memo.action_items|linebreaks }}</p>
+                            </div>
+                            {% endif %}
+
+                            {% if memo.action_taken %}
+                            <div class="mb-3">
+                                <strong>Action Taken:</strong>
+                                <p>{{ memo.action_taken|linebreaks }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-comments"></i> Comments</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for comment in comments %}
+                            <div class="mb-3 border-bottom pb-2">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ comment.created_by.username }}</strong>
+                                    <small class="text-muted">{{ comment.created_at|date:"Y-m-d H:i" }}</small>
+                                </div>
+                                <p>{{ comment.content }}</p>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted">No comments yet.</p>
+                            {% endfor %}
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    {{ form.content }}
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i> Add Comment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-info-circle"></i> Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Reference</strong></td>
+                                    <td>{{ memo.reference_number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Direction</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if memo.direction == 'incoming' %}success{% else %}info{% endif %}">
+                                            {{ memo.get_direction_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ memo.status|lower }}">
+                                            {{ memo.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Priority</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ memo.priority|lower }}">
+                                            {{ memo.get_priority_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Category</strong></td>
+                                    <td>{{ memo.category.name|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Memo Type</strong></td>
+                                    <td>{{ memo.memo_type.name|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sender Dept</strong></td>
+                                    <td>{{ memo.sender_department.name|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Receiver Dept</strong></td>
+                                    <td>{{ memo.receiver_department.name|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Memo Date</strong></td>
+                                    <td>{{ memo.memo_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                {% if memo.received_date %}
+                                <tr>
+                                    <td><strong>Received Date</strong></td>
+                                    <td>{{ memo.received_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if memo.sent_date %}
+                                <tr>
+                                    <td><strong>Sent Date</strong></td>
+                                    <td>{{ memo.sent_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if memo.due_date %}
+                                <tr>
+                                    <td><strong>Due Date</strong></td>
+                                    <td class="{% if memo.is_overdue %}text-danger{% endif %}">
+                                        {{ memo.due_date|date:"Y-m-d" }}
+                                        {% if memo.is_overdue %}
+                                        <i class="fas fa-exclamation-triangle" title="Overdue"></i>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if memo.completed_date %}
+                                <tr>
+                                    <td><strong>Completed Date</strong></td>
+                                    <td>{{ memo.completed_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Created</strong></td>
+                                    <td>{{ memo.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Created By</strong></td>
+                                    <td>{{ memo.created_by.username|default:"-" }}</td>
+                                </tr>
+                                {% if memo.assigned_to %}
+                                <tr>
+                                    <td><strong>Assigned To</strong></td>
+                                    <td>{{ memo.assigned_to.username }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if memo.requires_interpreter or memo.requires_translator %}
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-users"></i> Personnel Requirements</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if memo.requires_interpreter %}
+                            <p><strong>Interpreters:</strong> {{ memo.number_of_interpreters|default:0 }}</p>
+                            {% endif %}
+                            {% if memo.requires_translator %}
+                            <p><strong>Translators:</strong> {{ memo.number_of_translators|default:0 }}</p>
+                            {% endif %}
+                            {% if memo.language_requirements %}
+                            <p><strong>Languages:</strong> {{ memo.language_requirements }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions Timeline -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-history"></i> Actions</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                            {% for action in actions %}
+                            <div class="mb-2 border-bottom pb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">{{ action.performed_at|date:"Y-m-d H:i" }}</small>
+                                    <span class="badge bg-secondary">{{ action.get_action_type_display }}</span>
+                                </div>
+                                <p class="mb-0 small">{{ action.description }}</p>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted">No actions recorded.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add this section after the main content -->
+<div class="card mt-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-tasks"></i> Workflow Actions</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Workflow Steps -->
+            <div class="col-md-8">
+                <h6>Progress</h6>
+                <div class="workflow-steps">
+                    {% for step in memo.get_workflow_steps %}
+                    <div class="step {% if step.completed %}completed{% else %}pending{% endif %}">
+                        <div class="step-icon">
+                            <i class="fas {% if step.completed %}fa-check-circle text-success{% else %}fa-circle text-muted{% endif %}"></i>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-label">{{ step.label }}</span>
+                            {% if step.completed %}
+                            <span class="badge bg-success">Done</span>
+                            {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if not forloop.last %}
+                    <div class="step-connector"></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="col-md-4">
+                <h6>Actions</h6>
+                <div class="d-grid gap-2">
+                    {% if memo.direction == 'incoming' %}
+                        {% if memo.status == 'draft' or memo.status == 'registered' %}
+                        <a href="{% url 'memo-register' memo.id %}" class="btn btn-primary" onclick="return confirm('Register this memo?')">
+                            <i class="fas fa-check-circle"></i> Register Memo
+                        </a>
+                        {% endif %}
+                        
+                        {% if memo.status == 'registered' %}
+                        <a href="{% url 'memo-dispatch' memo.id %}" class="btn btn-info">
+                            <i class="fas fa-paper-plane"></i> Dispatch to OIC/HoD
+                        </a>
+                        {% endif %}
+                        
+                        {% if memo.requires_response and memo.status != 'response_sent' and memo.status != 'completed' %}
+                        <a href="{% url 'memo-upload-response' memo.id %}" class="btn btn-warning">
+                            <i class="fas fa-upload"></i> Upload Response
+                        </a>
+                        {% endif %}
+                        
+                        {% if memo.status == 'response_sent' or not memo.requires_response %}
+                        <a href="{% url 'memo-complete-workflow' memo.id %}" class="btn btn-success" onclick="return confirm('Complete this memo workflow?')">
+                            <i class="fas fa-check-double"></i> Complete Workflow
+                        </a>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if memo.direction == 'outgoing' %}
+                        <a href="{% url 'memo-complete-workflow' memo.id %}" class="btn btn-success" onclick="return confirm('Complete this memo workflow?')">
+                            <i class="fas fa-check-double"></i> Complete Workflow
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dispatch Modal -->
+{% if memo.status == 'registered' %}
+<div class="modal fade" id="dispatchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dispatch Memo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'memo-dispatch' memo.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Dispatch To</label>
+                        <input type="text" name="dispatched_to" class="form-control" placeholder="e.g., OIC, HoD, Director" required>
+                        <small class="text-muted">Specify the person or position to dispatch this memo to</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Additional notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Dispatch
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Complete Workflow Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Memo Workflow</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'memo-complete-workflow' memo.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Are you sure you want to mark this memo as completed?
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Completion Notes</label>
+                        <textarea name="completion_notes" class="form-control" rows="3" placeholder="Add notes about the completion..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check-double"></i> Complete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add this section after the content -->
+{% if memo.incoming_memo_file or memo.incoming_memo_scan or memo.outgoing_memo_file %}
+<div class="card mt-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-file-alt"></i> Attached Documents</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% if memo.incoming_memo_file %}
+            <div class="col-md-4 mb-2">
+                <div class="document-card">
+                    <div class="document-icon">
+                        <i class="fas {{ memo.get_file_icon }} fa-3x text-primary"></i>
+                    </div>
+                    <div class="document-info">
+                        <small class="text-muted d-block">{{ memo.incoming_memo_file.name|truncatechars:20 }}</small>
+                        <div class="btn-group btn-group-sm mt-1">
+                            <a href="{% url 'memo-view-file' memo.id %}" class="btn btn-info" target="_blank">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <a href="{% url 'memo-download-file' memo.id %}" class="btn btn-success">
+                                <i class="fas fa-download"></i> Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if memo.incoming_memo_scan %}
+            <div class="col-md-4 mb-2">
+                <div class="document-card">
+                    <div class="document-icon">
+                        <i class="fas fa-camera fa-3x text-secondary"></i>
+                    </div>
+                    <div class="document-info">
+                        <small class="text-muted d-block">Scanned Copy</small>
+                        <a href="{{ memo.incoming_memo_scan.url }}" class="btn btn-sm btn-info" target="_blank">
+                            <i class="fas fa-eye"></i> View Scan
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if memo.supporting_documents %}
+            <div class="col-md-4 mb-2">
+                <div class="document-card">
+                    <div class="document-icon">
+                        <i class="fas fa-paperclip fa-3x text-warning"></i>
+                    </div>
+                    <div class="document-info">
+                        <small class="text-muted d-block">Supporting Documents</small>
+                        <a href="{{ memo.supporting_documents.url }}" class="btn btn-sm btn-info" target="_blank">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

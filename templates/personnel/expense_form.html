@@ -1,0 +1,310 @@
+<!-- templates/personnel/expense_form.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- ============================================================ -->
+    <!-- HEADER -->
+    <!-- ============================================================ -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            {% if is_edit %}✏️ Edit Expense{% else %}➕ New Expense Entry{% endif %}
+            {% if expense.is_locked %}
+                <span class="badge bg-danger">🔒 Locked</span>
+            {% endif %}
+        </h2>
+        <a href="{% url 'expense-list' %}" class="btn btn-outline-secondary">← Back</a>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>ⓘ Manual entry:</strong>
+        Enter the applicable rates for this country / personnel group.
+        DSA, salary, and allowances vary per country, per translator/interpreter
+        group (I, II, III), and per individual assignment.
+        <br>
+        <small class="text-muted">
+            <strong>Rate-based fields</strong> (Salary, DSA, Travel Fee) are entered
+            <em>per day</em> and multiplied by <strong>Number of Days</strong>.
+            Flat fields (Standby, Terminal, Visa, Air Ticket, Other) are added directly.
+        </small>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- ============================================================ -->
+        <!-- ASSIGNMENT CARD -->
+        <!-- ============================================================ -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold">Assignment</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Personnel *</label>
+                        {{ form.personnel }}
+                        {% if form.personnel.errors %}
+                            <div class="text-danger small">{{ form.personnel.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Meeting</label>
+                        {{ form.meeting }}
+                        {% if form.meeting.errors %}
+                            <div class="text-danger small">{{ form.meeting.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Country / Mission</label>
+                        {{ form.country }}
+                        {% if form.country.errors %}
+                            <div class="text-danger small">{{ form.country.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Category *</label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <div class="text-danger small">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Currency *</label>
+                        {{ form.currency }}
+                        {% if form.currency.errors %}
+                            <div class="text-danger small">{{ form.currency.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- EXPENSE BREAKDOWN CARD -->
+        <!-- ============================================================ -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold">Expense Breakdown</div>
+            <div class="card-body">
+
+                <!-- Number of days (multiplier) -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            📆 Number of Days
+                            <small class="text-muted fw-normal">
+                                (multiplies Salary, DSA &amp; Travel Fee)
+                            </small>
+                        </label>
+                        {{ form.number_of_days }}
+                        {% if form.number_of_days.help_text %}
+                            <small class="text-muted d-block">{{ form.number_of_days.help_text }}</small>
+                        {% endif %}
+                        {% if form.number_of_days.errors %}
+                            <div class="text-danger small">{{ form.number_of_days.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Rate-based fields (per-day) -->
+                <h6 class="text-primary mt-3 mb-2">
+                    <i class="fas fa-calculator"></i>
+                    Rate-based <small class="text-muted fw-normal">(per day × number of days)</small>
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            💰 Salary <small class="text-muted">(per day)</small>
+                        </label>
+                        {{ form.salary }}
+                        <small class="text-muted d-block" id="salary-line">—</small>
+                        {% if form.salary.errors %}
+                            <div class="text-danger small">{{ form.salary.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            📅 DSA <small class="text-muted">(per day)</small>
+                        </label>
+                        {{ form.dsa }}
+                        <small class="text-muted d-block" id="dsa-line">—</small>
+                        {% if form.dsa.errors %}
+                            <div class="text-danger small">{{ form.dsa.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            🚆 Travel Fee <small class="text-muted">(per day)</small>
+                        </label>
+                        {{ form.travel_fee }}
+                        <small class="text-muted d-block" id="travel-line">—</small>
+                        {% if form.travel_fee.errors %}
+                            <div class="text-danger small">{{ form.travel_fee.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Flat fields -->
+                <h6 class="text-secondary mt-4 mb-2">
+                    <i class="fas fa-plus-circle"></i>
+                    Flat amounts <small class="text-muted fw-normal">(added directly)</small>
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">⏳ Standby</label>
+                        {{ form.standby_days }}
+                        {% if form.standby_days.errors %}
+                            <div class="text-danger small">{{ form.standby_days.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">🛬 Terminal Expenses</label>
+                        {{ form.terminal_expenses }}
+                        {% if form.terminal_expenses.errors %}
+                            <div class="text-danger small">{{ form.terminal_expenses.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">🛂 Visa Fees</label>
+                        {{ form.visa_fees }}
+                        {% if form.visa_fees.errors %}
+                            <div class="text-danger small">{{ form.visa_fees.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">✈️ Air Ticket</label>
+                        {{ form.air_ticket }}
+                        {% if form.air_ticket.errors %}
+                            <div class="text-danger small">{{ form.air_ticket.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">📎 Other</label>
+                        {{ form.other }}
+                        {% if form.other.errors %}
+                            <div class="text-danger small">{{ form.other.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- GRAND TOTAL (LIVE) -->
+        <!-- ============================================================ -->
+        <div class="card shadow-sm mb-4" style="background:#eef5ff; border:1px solid #c7d9ec;">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <div class="h4 mb-0">🧾 GRAND TOTAL</div>
+                    <small class="text-muted" id="total-formula">
+                        (Salary + DSA + Travel) × days + flat amounts
+                    </small>
+                </div>
+                <div class="h2 mb-0 text-primary">
+                    <span id="currency-label">
+                        {% if expense %}{{ expense.currency }}{% else %}USD{% endif %}
+                    </span>
+                    <span id="grand-total">0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- ADMIN LOCK -->
+        <!-- ============================================================ -->
+        {% if user.is_staff %}
+        <div class="form-check mb-4">
+            {{ form.is_locked }}
+            <label class="form-check-label" for="{{ form.is_locked.id_for_label }}">
+                🔒 Lock this record (only admins can change it afterwards)
+            </label>
+        </div>
+        {% endif %}
+
+        <!-- ============================================================ -->
+        <!-- ACTIONS -->
+        <!-- ============================================================ -->
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4">
+                💾 {% if is_edit %}Update{% else %}Save{% endif %} Expense
+            </button>
+            <a href="{% url 'expense-list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- ============================================================ -->
+<!-- LIVE CALCULATION SCRIPT -->
+<!-- ============================================================ -->
+<script>
+(function () {
+    // Inputs
+    const daysInput      = document.querySelector('.expense-days');
+    const allInputs      = document.querySelectorAll('.expense-input');
+    const totalEl        = document.getElementById('grand-total');
+    const currencyEl     = document.getElementById('currency-label');
+    const currencySelect = document.getElementById('{{ form.currency.id_for_label }}');
+
+    // Per-line previews
+    const salaryLine = document.getElementById('salary-line');
+    const dsaLine    = document.getElementById('dsa-line');
+    const travelLine = document.getElementById('travel-line');
+
+    // Rate-based inputs have data-rate-based="true"
+    const rateInputs = document.querySelectorAll('.expense-input[data-rate-based="true"]');
+    const flatInputs = document.querySelectorAll('.expense-input:not([data-rate-based="true"])');
+
+    // Specific IDs for per-line previews
+    const salaryId = '{{ form.salary.id_for_label }}';
+    const dsaId    = '{{ form.dsa.id_for_label }}';
+    const travelId = '{{ form.travel_fee.id_for_label }}';
+
+    function num(v) {
+        const n = parseFloat(v);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function fmt(n) {
+        return n.toFixed(2);
+    }
+
+    function calc() {
+        const days = Math.max(0.5, num(daysInput && daysInput.value) || 1);
+
+        let rateSubtotal = 0;
+        let flatSubtotal = 0;
+
+        rateInputs.forEach(i => { rateSubtotal += num(i.value); });
+        flatInputs.forEach(i => { flatSubtotal += num(i.value); });
+
+        const rateTotal = rateSubtotal * days;
+        const total     = rateTotal + flatSubtotal;
+
+        if (totalEl) totalEl.textContent = fmt(total);
+
+        // Per-line previews: "= 300.00 (100.00 × 3)"
+        const salary = num(document.getElementById(salaryId)?.value);
+        const dsa    = num(document.getElementById(dsaId)?.value);
+        const travel = num(document.getElementById(travelId)?.value);
+
+        if (salaryLine) salaryLine.textContent = `= ${fmt(salary * days)} (${fmt(salary)} × ${days})`;
+        if (dsaLine)    dsaLine.textContent    = `= ${fmt(dsa * days)} (${fmt(dsa)} × ${days})`;
+        if (travelLine) travelLine.textContent = `= ${fmt(travel * days)} (${fmt(travel)} × ${days})`;
+    }
+
+    // Attach listeners
+    allInputs.forEach(i => i.addEventListener('input', calc));
+    if (daysInput) daysInput.addEventListener('input', calc);
+
+    // Currency label follows the select
+    if (currencySelect && currencyEl) {
+        currencySelect.addEventListener('change', () => {
+            currencyEl.textContent = currencySelect.value;
+        });
+    }
+
+    // Run on load
+    calc();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,1558 @@
+<!-- templates/personnel/dashboard_table.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<!-- DataTables styling -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    /* ============================================================
+       AFRICAN UNION COLOR PALETTE
+       ============================================================ */
+    :root {
+        --au-green: #1B5E20;
+        --au-green-light: #319400;
+        --au-gold: #F7C608;
+        --au-red: #952038;
+        --au-green-hover: #154a19;
+    }
+
+    /* ============================================================
+       COLLAPSIBLE MEETING STYLES
+       ============================================================ */
+    .meeting-collapse-toggle {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s;
+    }
+    .meeting-collapse-toggle:hover {
+        background-color: var(--au-green-hover) !important;
+    }
+    .meeting-collapse-toggle .toggle-icon {
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+    .meeting-collapse-toggle .toggle-icon.collapsed {
+        transform: rotate(-90deg);
+    }
+    .meeting-body {
+        transition: all 0.3s ease;
+    }
+    .meeting-body.collapsing {
+        overflow: hidden;
+    }
+    .meeting-body:not(.show) {
+        display: none;
+    }
+    .meeting-body.show {
+        display: block;
+    }
+
+    /* ============================================================
+       AU COLORED HEADERS
+       ============================================================ */
+    .meeting-header-au {
+        background-color: var(--au-green) !important;
+        color: #fff !important;
+        border-bottom: 3px solid var(--au-gold) !important;
+    }
+
+    .meeting-header-au .badge-count {
+        background-color: var(--au-gold) !important;
+        color: #1B1B1B !important;
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 0.35rem 0.65rem;
+    }
+
+    .meeting-header-au .meeting-stat-item {
+        background: rgba(247, 198, 8, 0.18);
+        border: 1px solid rgba(247, 198, 8, 0.35);
+        font-size: 0.85rem;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+
+    .meeting-header-au .meeting-stat-item i {
+        margin-right: 4px;
+        color: var(--au-gold);
+    }
+
+    .meeting-header-au .btn-availability {
+        background-color: #fff !important;
+        color: var(--au-green) !important;
+        font-weight: 600;
+        border: 1px solid rgba(0,0,0,0.08);
+    }
+    .meeting-header-au .btn-availability:hover {
+        background-color: var(--au-gold) !important;
+        color: #1B1B1B !important;
+    }
+    .meeting-header-au .btn-availability .badge {
+        font-size: 0.75rem;
+    }
+
+    /* ============================================================
+       STATS SUMMARY CARDS
+       ============================================================ */
+    .card-au-primary {
+        background-color: var(--au-green) !important;
+        color: white;
+        border-bottom: 3px solid var(--au-gold);
+    }
+    .card-au-success {
+        background-color: var(--au-green-light) !important;
+        color: white;
+    }
+    .card-au-gold {
+        background-color: var(--au-gold) !important;
+        color: #1B1B1B;
+    }
+    .card-au-red {
+        background-color: var(--au-red) !important;
+        color: white;
+    }
+
+    /* ============================================================
+       TEXT & BADGE UTILITIES
+       ============================================================ */
+    .text-au-green { color: var(--au-green) !important; }
+    .text-au-gold  { color: #b89500 !important; }
+    .text-au-red   { color: var(--au-red) !important; }
+
+    .badge-au-green { background-color: var(--au-green) !important; color: white; }
+    .badge-au-gold  { background-color: var(--au-gold)  !important; color: #1B1B1B; }
+    .badge-au-red   { background-color: var(--au-red)   !important; color: white; }
+
+    /* ============================================================
+       MEETING HEADER LAYOUT
+       ============================================================ */
+    .meeting-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .meeting-stats {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    /* Sticky header for meeting cards */
+    .meeting-card {
+        position: relative;
+    }
+    .meeting-card .card-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    /* ============================================================
+       EXPAND ALL BUTTON
+       ============================================================ */
+    .btn-expand-all {
+        transition: all 0.3s ease;
+    }
+    .btn-expand-all:hover {
+        transform: scale(1.05);
+    }
+
+    /* ============================================================
+       DATATABLE STYLES INSIDE COLLAPSED SECTIONS
+       ============================================================ */
+    .meeting-body .dataTables_wrapper {
+        padding-top: 10px;
+        overflow-x: auto;
+    }
+
+    .dataTables_info,
+    .dataTables_length {
+        display: none !important;
+    }
+
+    /* ============================================================
+       TABLE HEADER AU COLORS
+       ============================================================ */
+    .table-au-header {
+        background-color: #e8f5e9 !important;
+        color: var(--au-green);
+    }
+
+    /* ============================================================
+       ROW HIGHLIGHT — SENT TO FINANCE (AU GOLD)
+       ============================================================ */
+    tr.row-sent-to-finance > td {
+        background-color: var(--au-gold) !important;
+        border-color: #d4a700 !important;
+        color: #1B1B1B !important;
+    }
+
+    table.table-striped > tbody > tr.row-sent-to-finance:nth-of-type(odd) > td,
+    table.table-striped > tbody > tr.row-sent-to-finance:nth-of-type(even) > td {
+        background-color: var(--au-gold) !important;
+    }
+
+    tr.row-sent-to-finance:hover > td {
+        background-color: #e0b400 !important;
+        color: #1B1B1B !important;
+    }
+
+    tr.row-sent-to-finance > td:first-child {
+        box-shadow: inset 4px 0 0 0 var(--au-green);
+    }
+
+    /* Small doc icons */
+    .doc-icons i { font-size: 0.95rem; }
+    .doc-icons .no-docs { font-size: 0.8rem; color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <hr style="border-top: 3px solid var(--au-gold);">
+        </div>
+    </div>
+
+    <!-- Stats Summary with AU Colors -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card card-au-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Personnel</h5>
+                    <h2>{{ total_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-au-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Documents Complete</h5>
+                    <h2>{{ complete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-au-gold">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Incomplete</h5>
+                    <h2>{{ incomplete_count|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-au-red">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Pending Payment</h5>
+                    <h2>{{ pending_payments|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+<!-- GLOBAL SEARCH & FILTER BAR -->
+<!-- ============================================================ -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card" style="border-left: 4px solid var(--au-green);">
+            <div class="card-body py-3">
+                <form method="get" id="globalSearchForm" class="row g-2 align-items-center">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: var(--au-green); color: white;">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text"
+                                   name="q"
+                                   id="globalSearchInput"
+                                   class="form-control"
+                                   placeholder="Search meetings, personnel names, emails, nationalities..."
+                                   value="{{ request.GET.q|default:'' }}">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            {% if request.GET.q %}
+                            <a href="?" class="btn btn-outline-secondary" title="Clear search">
+                                <i class="fas fa-times"></i> Clear
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="designation" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Designations</option>
+                            <option value="translator" {% if request.GET.designation == 'translator' %}selected{% endif %}>Translators</option>
+                            <option value="interpreter" {% if request.GET.designation == 'interpreter' %}selected{% endif %}>Interpreters</option>
+                            <option value="coordination" {% if request.GET.designation == 'coordination' %}selected{% endif %}>Coordination</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="doc_status" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Statuses</option>
+                            <option value="complete" {% if request.GET.doc_status == 'complete' %}selected{% endif %}>Documents Complete</option>
+                            <option value="incomplete" {% if request.GET.doc_status == 'incomplete' %}selected{% endif %}>Incomplete</option>
+                            <option value="pending_payment" {% if request.GET.doc_status == 'pending_payment' %}selected{% endif %}>Pending Payment</option>
+                        </select>
+                    </div>
+                </form>
+                {% if request.GET.q %}
+                <div class="mt-2 small text-muted">
+                    <i class="fas fa-filter"></i>
+                    Showing results for: <strong>"{{ request.GET.q }}"</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <button class="btn btn-success me-2 btn-expand-all" onclick="toggleAllMeetings()">
+                    <i class="fas fa-expand-all"></i> <span id="expandAllText">Expand All</span>
+                </button>
+                <a href="{% url 'meeting-create' %}" class="btn btn-success">
+                    <i class="fas fa-calendar-plus"></i> New Meeting
+                </a>
+                <a href="{% url 'personnel-add' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Add Personnel
+                </a>
+                <a href="{% url 'personnel-add-from-master' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-list"></i> Add from Master List
+                </a>
+                <button id="exportAllBtn" class="btn btn-warning">
+                    <i class="fas fa-file-excel"></i> Export All to Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         REUSABLE MACRO-LIKE PARTIAL — the doc-status cells
+         (kept inline below because Django templates have no macros)
+         ============================================================ -->
+
+    <!-- Grouped Personnel by Meeting - COLLAPSIBLE -->
+    {% for group in grouped_meetings %}
+    <div class="card mb-4 meeting-card">
+        <!-- Meeting Header - Clickable to toggle collapse -->
+        <div class="card-header meeting-header-au meeting-collapse-toggle"
+             onclick="toggleMeeting(this)"
+             data-target="meeting-body-{{ group.meeting.id }}">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span class="toggle-icon" id="toggle-icon-{{ group.meeting.id }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        {{ group.meeting.name }}
+                    </h4>
+                    <span class="badge badge-count">
+                        {{ group.total }} personnel
+                    </span>
+
+                    <!-- Availability button -->
+                    <a href="{% url 'meeting-availability-dashboard' group.meeting.id %}"
+                       class="btn btn-sm btn-availability"
+                       onclick="event.stopPropagation();"
+                       title="View and manage availability requests for this meeting">
+                        <i class="fas fa-envelope-open-text me-1"></i>
+                        Availability
+                        <span class="badge bg-warning text-dark ms-1">
+                            {{ group.meeting.availability_requests.count }}
+                        </span>
+                    </a>
+                </div>
+                <div class="meeting-header-actions">
+                    <div class="meeting-stats d-none d-md-flex">
+                        {% if group.translators %}
+                        <span class="meeting-stat-item">
+                            <i class="fas fa-language"></i> {{ group.translators|length }} Translators
+                        </span>
+                        {% endif %}
+                        {% if group.interpreters %}
+                        <span class="meeting-stat-item">
+                            <i class="fas fa-microphone"></i> {{ group.interpreters|length }} Interpreters
+                        </span>
+                        {% endif %}
+                        {% if group.coordination %}
+                        <span class="meeting-stat-item">
+                            <i class="fas fa-users-cog"></i> {{ group.coordination|length }} Coordination
+                        </span>
+                        {% endif %}
+                    </div>
+                    <small class="text-light">
+                        <i class="fas fa-map-marker-alt me-1"></i> {{ group.meeting.location }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-calendar-day me-1"></i> {{ group.meeting.start_date|date:"M d, Y" }} - {{ group.meeting.end_date|date:"M d, Y" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meeting Body - Collapsible content -->
+        <div class="meeting-body" id="meeting-body-{{ group.meeting.id }}">
+            <div class="card-body">
+
+                <!-- ============================================================ -->
+                <!-- TRANSLATORS SECTION -->
+                <!-- ============================================================ -->
+                {% if group.translators %}
+                <div class="mb-4">
+                    <h5 class="text-au-green">
+                        <i class="fas fa-language"></i> Translators
+                        <span class="badge badge-au-green">{{ group.translators|length }}</span>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover personnel-table"
+                               data-meeting="{{ group.meeting.id }}"
+                               id="dash-translators-{{ group.meeting.id }}">
+                            <thead class="table-au-header">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Nationality</th>
+                                    <th>Designation</th>
+                                    <th>City of Departure</th>
+                                    <th>Completeness</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in group.translators %}
+                                <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <a href="{% url 'personnel-detail' person.id %}">
+                                            <strong>{{ person.full_name }}</strong>
+                                        </a>
+                                    </td>
+                                    <td>{{ person.first_name }}</td>
+                                    <td>{{ person.last_name }}</td>
+                                    <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>
+                                        <span class="badge badge-au-green">
+                                            {{ person.designation|default:"Translator" }}
+                                        </span>
+                                    </td>
+                                    <td>{{ person.city_departure }}</td>
+
+                                    <!-- Completeness -->
+                                    <td>
+                                        {% if person.has_all_required_documents %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i> Complete
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                {{ person.get_all_missing_documents|length }} missing
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Documents icons -->
+                                    <td>
+                                        <div class="d-flex gap-1 flex-wrap doc-icons">
+                                            {% with status=person.get_document_status %}
+                                                {% for doc_type, info in status.items %}
+                                                    <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }}
+                                                              text-{{ info.uploaded|yesno:'success,danger' }}"
+                                                       title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                                {% empty %}
+                                                    <span class="no-docs">No routine docs</span>
+                                                {% endfor %}
+                                            {% endwith %}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload">
+                                                <i class="fas fa-upload"></i>
+                                            </a>
+                                            <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                            <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment">
+                                                <i class="fas fa-calculator"></i>
+                                            </a>
+                                            {% with p=person.payments.first %}
+                                                {% if p and p.payment_status != 'pending' %}
+                                                    <button class="btn btn-success" disabled
+                                                            title="Sent to Finance ({{ p.get_payment_status_display }})"
+                                                            style="opacity:1; cursor:default;">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                {% else %}
+                                                    <button class="btn btn-danger" onclick="sendToFinance({{ person.id }}, this)"
+                                                            title="Send to Finance"
+                                                            {% if not person.has_all_required_documents %}disabled{% endif %}>
+                                                        <i class="fas fa-money-bill-wave"></i>
+                                                    </button>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- ============================================================ -->
+                <!-- INTERPRETERS SECTION -->
+                <!-- ============================================================ -->
+                {% if group.interpreters %}
+                <div class="mb-4">
+                    <h5 class="text-au-green">
+                        <i class="fas fa-microphone"></i> Interpreters
+                        <span class="badge badge-au-green">{{ group.interpreters|length }}</span>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover personnel-table"
+                               data-meeting="{{ group.meeting.id }}"
+                               id="dash-interpreters-{{ group.meeting.id }}">
+                            <thead class="table-au-header">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Nationality</th>
+                                    <th>Designation</th>
+                                    <th>City of Departure</th>
+                                    <th>Completeness</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in group.interpreters %}
+                                <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <a href="{% url 'personnel-detail' person.id %}">
+                                            <strong>{{ person.full_name }}</strong>
+                                        </a>
+                                    </td>
+                                    <td>{{ person.first_name }}</td>
+                                    <td>{{ person.last_name }}</td>
+                                    <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>
+                                        <span class="badge badge-au-green">
+                                            {{ person.designation|default:"Interpreter" }}
+                                        </span>
+                                    </td>
+                                    <td>{{ person.city_departure }}</td>
+
+                                    <td>
+                                        {% if person.has_all_documents %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i> Complete
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                {{ person.get_missing_documents|length }} missing
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <div class="d-flex gap-1 flex-wrap doc-icons">
+                                            {% with status=person.get_all_document_status%}
+                                                {% for doc_type, info in status.items %}
+                                                    <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }}
+                                                              text-{{ info.uploaded|yesno:'success,danger' }}"
+                                                       title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                                {% empty %}
+                                                    <span class="no-docs">No routine docs</span>
+                                                {% endfor %}
+                                            {% endwith %}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload">
+                                                <i class="fas fa-upload"></i>
+                                            </a>
+                                            <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                            <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment">
+                                                <i class="fas fa-calculator"></i>
+                                            </a>
+                                            {% with p=person.payments.first %}
+                                                {% if p and p.payment_status != 'pending' %}
+                                                    <button class="btn btn-success" disabled
+                                                            title="Sent to Finance ({{ p.get_payment_status_display }})"
+                                                            style="opacity:1; cursor:default;">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                {% else %}
+                                                    <button class="btn btn-danger" onclick="sendToFinance({{ person.id }}, this)"
+                                                            title="Send to Finance"
+                                                            {% if not person.has_all_documents %}disabled{% endif %}>
+                                                        <i class="fas fa-money-bill-wave"></i>
+                                                    </button>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- ============================================================ -->
+                <!-- COORDINATION TEAM SECTION -->
+                <!-- ============================================================ -->
+                {% if group.coordination %}
+                <div class="mb-4">
+                    <h5 class="text-au-green">
+                        <i class="fas fa-users-cog"></i> Coordination Team
+                        <span class="badge badge-au-green">{{ group.coordination|length }}</span>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover personnel-table"
+                               data-meeting="{{ group.meeting.id }}"
+                               id="dash-coordination-{{ group.meeting.id }}">
+                            <thead class="table-au-header">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Nationality</th>
+                                    <th>Designation</th>
+                                    <th>City of Departure</th>
+                                    <th>Completeness</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in group.coordination %}
+                                <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <a href="{% url 'personnel-detail' person.id %}">
+                                            <strong>{{ person.full_name }}</strong>
+                                        </a>
+                                    </td>
+                                    <td>{{ person.first_name }}</td>
+                                    <td>{{ person.last_name }}</td>
+                                    <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>
+                                        <span class="badge badge-au-green">
+                                            {{ person.designation|default:"Coordination" }}
+                                        </span>
+                                    </td>
+                                    <td>{{ person.city_departure }}</td>
+
+                                    <td>
+                                        {% if person.has_all_documents %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i> Complete
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                {{ person.get_missing_documents|length }} missing
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <div class="d-flex gap-1 flex-wrap doc-icons">
+                                            {% with status=person.get_document_status %}
+                                                {% for doc_type, info in status.items %}
+                                                    <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }}
+                                                              text-{{ info.uploaded|yesno:'success,danger' }}"
+                                                       title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                                {% empty %}
+                                                    <span class="no-docs">No routine docs</span>
+                                                {% endfor %}
+                                            {% endwith %}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload">
+                                                <i class="fas fa-upload"></i>
+                                            </a>
+                                            <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                            <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment">
+                                                <i class="fas fa-calculator"></i>
+                                            </a>
+                                            {% with p=person.payments.first %}
+                                                {% if p and p.payment_status != 'pending' %}
+                                                    <button class="btn btn-success" disabled
+                                                            title="Sent to Finance ({{ p.get_payment_status_display }})"
+                                                            style="opacity:1; cursor:default;">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                {% else %}
+                                                    <button class="btn btn-danger" onclick="sendToFinance({{ person.id }}, this)"
+                                                            title="Send to Finance"
+                                                            {% if not person.has_all_documents %}disabled{% endif %}>
+                                                        <i class="fas fa-money-bill-wave"></i>
+                                                    </button>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not group.translators and not group.interpreters and not group.coordination %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle"></i> No personnel in this meeting
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Personnel Without Meeting Section - COLLAPSIBLE -->
+    {% if personnel_without_meeting %}
+    <div class="card mb-4 meeting-card">
+        <div class="card-header meeting-header-au meeting-collapse-toggle"
+             onclick="toggleMeeting(this)"
+             data-target="meeting-body-no-meeting">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="toggle-icon" id="toggle-icon-no-meeting">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Personnel Without Meeting
+                    </h4>
+                    <span class="badge badge-count">
+                        {{ personnel_without_meeting|length }} personnel
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="meeting-body" id="meeting-body-no-meeting">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover personnel-table" id="dash-no-meeting">
+                        <thead class="table-au-header">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Nationality</th>
+                                <th>Designation</th>
+                                <th>City of Departure</th>
+                                <th>Completeness</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person in personnel_without_meeting %}
+                            <tr class="{% with p=person.payments.first %}{% if p and p.payment_status != 'pending' %}row-sent-to-finance{% endif %}{% endwith %}">
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'personnel-detail' person.id %}">
+                                        <strong>{{ person.full_name }}</strong>
+                                    </a>
+                                </td>
+                                <td>{{ person.first_name }}</td>
+                                <td>{{ person.last_name }}</td>
+                                <td><a href="mailto:{{ person.email }}">{{ person.email }}</a></td>
+                                <td>{{ person.nationality }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ person.designation|default:"Unassigned" }}
+                                    </span>
+                                </td>
+                                <td>{{ person.city_departure }}</td>
+
+                                <td>
+                                    {% if person.has_all_documents %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle"></i> Complete
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            {{ person.get_missing_documents|length }} missing
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="d-flex gap-1 flex-wrap doc-icons">
+                                        {% with status=person.get_document_status %}
+                                            {% for doc_type, info in status.items %}
+                                                <i class="fas fa-{{ info.uploaded|yesno:'check-circle,times-circle' }}
+                                                          text-{{ info.uploaded|yesno:'success,danger' }}"
+                                                   title="{{ doc_type|title }}: {{ info.uploaded|yesno:'Uploaded,Missing' }}"></i>
+                                            {% empty %}
+                                                <span class="no-docs">No routine docs</span>
+                                            {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'personnel-detail' person.id %}" class="btn btn-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'personnel-edit' person.id %}" class="btn btn-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'upload-document-view' person.id %}" class="btn btn-success" title="Upload">
+                                            <i class="fas fa-upload"></i>
+                                        </a>
+                                        <button class="btn btn-primary" onclick="sendReminder({{ person.id }}, this)" title="Send Reminder">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                        <a href="{% url 'personnel-calculate-payment-and-redirect' person.id %}" class="btn btn-secondary" title="Calculate Payment">
+                                            <i class="fas fa-calculator"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ============================================================ -->
+    <!-- DSA PAYMENT CERTIFICATION SHEET - COLLAPSIBLE -->
+    <!-- ============================================================ -->
+    <div class="card mt-4 meeting-card">
+        <div class="card-header meeting-header-au meeting-collapse-toggle"
+             onclick="toggleMeeting(this)"
+             data-target="meeting-body-dsa">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="toggle-icon" id="toggle-icon-dsa">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-signature me-2"></i>
+                        DSA PAYMENT CERTIFICATION SHEET
+                    </h4>
+                    <span class="badge badge-count">
+                        {{ total_count }} personnel
+                    </span>
+                </div>
+                <div class="meeting-header-actions">
+                    <small class="text-light d-none d-md-inline">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Click to expand and view the certification sheet
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="meeting-body" id="meeting-body-dsa">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="dsaTable">
+                        <thead class="table-au-header">
+                            <tr>
+                                <th>#</th>
+                                <th>Full Name</th>
+                                <th>Nationality</th>
+                                <th>Designation</th>
+                                <th>Meeting</th>
+                                <th>DSA Amount (USD)</th>
+                                <th>Date of Payment</th>
+                                <th>Signature</th>
+                                <th>Authorizing Officer</th>
+                                <th>Finance Officer</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group in grouped_meetings %}
+                                {% for person in group.translators %}
+                                <tr>
+                                    <td>T{{ forloop.counter }}</td>
+                                    <td>{{ person.full_name }}</td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>{{ person.designation }}</td>
+                                    <td>{{ group.meeting.name }}</td>
+                                    <td>
+                                        {% with payment=person.payments.first %}
+                                            {% if payment %}${{ payment.total_amount }}{% else %}<span class="text-dark fw-semibold">Pending</span>{% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        {% with payment=person.payments.first %}
+                                            {% if payment and payment.payment_date %}{{ payment.payment_date|date:"Y-m-d" }}{% else %}<span class="text-dark">-</span>{% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><span class="text-dark">-</span></td>
+                                </tr>
+                                {% endfor %}
+                                {% for person in group.interpreters %}
+                                <tr>
+                                    <td>I{{ forloop.counter }}</td>
+                                    <td>{{ person.full_name }}</td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>{{ person.designation }}</td>
+                                    <td>{{ group.meeting.name }}</td>
+                                    <td>
+                                        {% with payment=person.payments.first %}
+                                            {% if payment %}${{ payment.total_amount }}{% else %}<span class="text-dark fw-semibold">Pending</span>{% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        {% with payment=person.payments.first %}
+                                            {% if payment and payment.payment_date %}{{ payment.payment_date|date:"Y-m-d" }}{% else %}<span class="text-dark">-</span>{% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><span class="text-dark">-</span></td>
+                                </tr>
+                                {% endfor %}
+                                {% for person in group.coordination %}
+                                <tr>
+                                    <td>C{{ forloop.counter }}</td>
+                                    <td>{{ person.full_name }}</td>
+                                    <td>{{ person.nationality }}</td>
+                                    <td>{{ person.designation }}</td>
+                                    <td>{{ group.meeting.name }}</td>
+                                    <td>
+                                        {% with payment=person.payments.first %}
+                                            {% if payment %}${{ payment.total_amount }}{% else %}<span class="text-dark fw-semibold">Pending</span>{% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        {% with payment=person.payments.first %}
+                                            {% if payment and payment.payment_date %}{{ payment.payment_date|date:"Y-m-d" }}{% else %}<span class="text-dark">-</span>{% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><i class="fas fa-pen text-dark"></i></td>
+                                    <td><span class="text-dark">-</span></td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for person in personnel_without_meeting %}
+                            <tr>
+                                <td>U.{{ forloop.counter }}</td>
+                                <td>{{ person.full_name }}</td>
+                                <td>{{ person.nationality }}</td>
+                                <td>{{ person.designation }}</td>
+                                <td><span class="badge bg-secondary">Not Assigned</span></td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment %}${{ payment.total_amount }}{% else %}<span class="text-dark fw-semibold">Pending</span>{% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with payment=person.payments.first %}
+                                        {% if payment and payment.payment_date %}{{ payment.payment_date|date:"Y-m-d" }}{% else %}<span class="text-dark">-</span>{% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><i class="fas fa-pen text-dark"></i></td>
+                                <td><span class="text-dark">-</span></td>
+                            </tr>
+                            {% endfor %}
+                            {% if not grouped_meetings and not personnel_without_meeting %}
+                            <tr>
+                                <td colspan="11" class="text-center text-dark">No personnel found</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- GLOBAL PAGINATION (for meeting cards) -->
+<!-- ============================================================ -->
+{% if page_obj and page_obj.has_other_pages %}
+<nav aria-label="Meeting pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                    <i class="fas fa-angle-double-left"></i> First
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                    <i class="fas fa-angle-left"></i> Previous
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link"><i class="fas fa-angle-double-left"></i> First</span></li>
+            <li class="page-item disabled"><span class="page-link"><i class="fas fa-angle-left"></i> Previous</span></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link" style="background-color: var(--au-green); border-color: var(--au-green);">{{ num }}</span>
+                </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                    Next <i class="fas fa-angle-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.designation %}&designation={{ request.GET.designation }}{% endif %}{% if request.GET.doc_status %}&doc_status={{ request.GET.doc_status }}{% endif %}">
+                    Last <i class="fas fa-angle-double-right"></i>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Next <i class="fas fa-angle-right"></i></span></li>
+            <li class="page-item disabled"><span class="page-link">Last <i class="fas fa-angle-double-right"></i></span></li>
+        {% endif %}
+    </ul>
+    <p class="text-center text-muted small mb-0">
+        Page {{ page_obj.number }} of s{{ page_obj.paginator.num_pages }}
+        ({{ page_obj.paginator.count }} total meetings)
+    </p>
+</nav>
+{% endif %}
+
+<!-- ============================================================ -->
+<!-- SCRIPTS -->
+<!-- ============================================================ -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+    // ============================================================
+    // COLLAPSIBLE MEETING FUNCTIONS
+    // ============================================================
+    const initializedTables = new Set();
+
+    function initDataTable(tableElement) {
+        if (!tableElement) return;
+        const tableId = tableElement.id || tableElement.className + '_' + Math.random().toString(36).substr(2, 9);
+
+        if (initializedTables.has(tableId)) return;
+        if ($.fn.DataTable.isDataTable(tableElement)) return;
+
+        try {
+            $(tableElement).DataTable({
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']],
+                columnDefs: [
+                    { targets: [-1], orderable: false, searchable: false }
+                ],
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    zeroRecords: "No matching records found",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    }
+                }
+            });
+            initializedTables.add(tableId);
+        } catch (error) {
+            console.error('DataTable init error:', error);
+        }
+    }
+
+    function initDsaDataTable() {
+        const dsaTable = document.getElementById('dsaTable');
+        if (!dsaTable) return;
+        if ($.fn.DataTable.isDataTable(dsaTable)) return;
+
+        try {
+            $(dsaTable).DataTable({
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']],
+                columnDefs: [
+                    { targets: [-1], orderable: false, searchable: false }
+                ],
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    zeroRecords: "No matching records found",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('DSA DataTable init error:', error);
+        }
+    }
+
+    function toggleMeeting(element) {
+        const targetId = element.getAttribute('data-target');
+        const body = document.getElementById(targetId);
+        const icon = element.querySelector('.toggle-icon i');
+
+        if (!body) return;
+
+        if (body.classList.contains('show')) {
+            body.classList.remove('show');
+            if (icon) icon.className = 'fas fa-chevron-right';
+            updateExpandAllButton();
+        } else {
+            body.classList.add('show');
+            if (icon) icon.className = 'fas fa-chevron-down';
+
+            const tables = body.querySelectorAll('.personnel-table');
+            tables.forEach(function(table) {
+                initDataTable(table);
+            });
+
+            const dsaTable = body.querySelector('#dsaTable');
+            if (dsaTable) {
+                initDsaDataTable();
+            }
+
+            updateExpandAllButton();
+        }
+    }
+
+    function updateExpandAllButton() {
+        const bodies = document.querySelectorAll('.meeting-body');
+        const expandBtn = document.getElementById('expandAllText');
+        if (!expandBtn) return;
+
+        let allExpanded = true;
+        let allCollapsed = true;
+
+        bodies.forEach(function(body) {
+            if (body.classList.contains('show')) {
+                allCollapsed = false;
+            } else {
+                allExpanded = false;
+            }
+        });
+
+        if (allExpanded && bodies.length > 0) {
+            expandBtn.textContent = 'Collapse All';
+        } else {
+            expandBtn.textContent = 'Expand All';
+        }
+    }
+
+    function toggleAllMeetings() {
+        const bodies = document.querySelectorAll('.meeting-body');
+        const icons = document.querySelectorAll('.meeting-collapse-toggle .toggle-icon i');
+        const expandBtn = document.getElementById('expandAllText');
+
+        let allCollapsed = true;
+        bodies.forEach(function(body) {
+            if (body.classList.contains('show')) allCollapsed = false;
+        });
+
+        if (allCollapsed) {
+            bodies.forEach(function(body) {
+                body.classList.add('show');
+            });
+            icons.forEach(function(icon) {
+                icon.className = 'fas fa-chevron-down';
+            });
+            if (expandBtn) expandBtn.textContent = 'Collapse All';
+
+            setTimeout(function() {
+                document.querySelectorAll('.personnel-table').forEach(function(table) {
+                    initDataTable(table);
+                });
+                initDsaDataTable();
+            }, 100);
+        } else {
+            bodies.forEach(function(body) {
+                body.classList.remove('show');
+            });
+            icons.forEach(function(icon) {
+                icon.className = 'fas fa-chevron-right';
+            });
+            if (expandBtn) expandBtn.textContent = 'Expand All';
+        }
+    }
+
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function sendReminder(personnelId, buttonElement) {
+        if (!confirm('Send document reminder to this personnel?')) return;
+
+        const btn = buttonElement || event.target.closest('button');
+        if (!btn) return;
+
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        fetch(`/api/personnel/${personnelId}/send-reminder/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.message || data.error || 'Server error');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') alert('✅ Reminder sent successfully!');
+            else alert('⚠️ Error: ' + (data.message || 'Unknown error'));
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Failed: ' + error.message);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+
+    function sendToFinance(personnelId, buttonElement) {
+        if (!confirm('Send this personnel\'s documents to finance?')) return;
+
+        const btn = buttonElement || event.target.closest('button');
+        if (!btn) return;
+
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        fetch(`/api/personnel/${personnelId}/send-to-finance/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            return response.text().then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Non-JSON response:', response.status, text.substring(0, 500));
+                    throw new Error(
+                        `Server returned ${response.status} (${response.statusText}). ` +
+                        `Check the runserver terminal for the traceback.`
+                    );
+                }
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || data.detail || `HTTP ${response.status}`);
+                }
+                return data;
+            });
+        })
+        .then(data => {
+            btn.classList.remove('btn-danger');
+            btn.classList.add('btn-success');
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.title = 'Sent to Finance';
+            btn.disabled = true;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'default';
+
+            const row = btn.closest('tr');
+            if (row) {
+                row.classList.add('row-sent-to-finance');
+            }
+
+            let msg = '✅ ' + (data.message || 'Sent to Finance!');
+            if (data.warning) {
+                msg += '\n\n⚠️ ' + data.warning;
+            }
+            alert(msg);
+
+            setTimeout(function () { location.reload(); }, 1200);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Failed: ' + error.message);
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+
+    // ============================================================
+    // EXPORT FUNCTIONALITY
+    // ============================================================
+    function exportToExcel() {
+        try {
+            var wb = XLSX.utils.book_new();
+            var sheetsAdded = 0;
+            var errors = [];
+
+            document.querySelectorAll('.meeting-card').forEach(function(card, cardIndex) {
+                try {
+                    if (card.querySelector('#dsaTable')) return;
+
+                    var meetingName = 'Meeting_' + (cardIndex + 1);
+                    var header = card.querySelector('.card-header h4');
+                    if (header) meetingName = header.textContent.trim();
+
+                    var cardBody = card.querySelector('.card-body');
+                    if (!cardBody) return;
+
+                    var allTables = cardBody.querySelectorAll('table.table');
+
+                    allTables.forEach(function(table) {
+                        try {
+                            var categoryName = '';
+                            var parentDiv = table.closest('.mb-4');
+                            if (parentDiv) {
+                                var heading = parentDiv.querySelector('h5');
+                                if (heading) categoryName = heading.textContent.trim();
+                            }
+
+                            var clone = table.cloneNode(true);
+                            clone.classList.remove('dataTable');
+                            clone.removeAttribute('role');
+                            clone.removeAttribute('aria-describedby');
+
+                            clone.querySelectorAll('.dataTables_empty, .dataTables_info, .dataTables_paginate, .dataTables_filter, .dataTables_length').forEach(function(el) {
+                                if (el.parentNode) el.parentNode.removeChild(el);
+                            });
+
+                            var thead = clone.querySelector('thead');
+                            if (thead) {
+                                thead.querySelectorAll('tr').forEach(function(row) {
+                                    var ths = row.querySelectorAll('th');
+                                    if (ths.length > 0) {
+                                        var lastTh = ths[ths.length - 1];
+                                        if (lastTh.textContent.trim().toLowerCase().includes('action')) {
+                                            row.removeChild(lastTh);
+                                        }
+                                    }
+                                });
+                            }
+
+                            var tbody = clone.querySelector('tbody');
+                            if (tbody) {
+                                tbody.querySelectorAll('tr').forEach(function(row) {
+                                    var tds = row.querySelectorAll('td');
+                                    if (tds.length > 0) {
+                                        var lastTd = tds[tds.length - 1];
+                                        if (lastTd.querySelector('.btn-group') || lastTd.querySelector('.btn')) {
+                                            row.removeChild(lastTd);
+                                        }
+                                    }
+                                });
+                            }
+
+                            var sheetName = meetingName.substring(0, 20);
+                            if (categoryName) {
+                                var catClean = categoryName.replace(/\s*\(\d+\)\s*/, '').trim();
+                                sheetName = sheetName + ' - ' + catClean.substring(0, 15);
+                            }
+                            sheetName = sheetName.substring(0, 31);
+
+                            var ws = XLSX.utils.table_to_sheet(clone);
+                            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                            sheetsAdded++;
+                        } catch (error) {
+                            errors.push('Table error: ' + error.message);
+                        }
+                    });
+                } catch (error) {
+                    errors.push('Card error: ' + error.message);
+                }
+            });
+
+            var dsaTable = document.getElementById('dsaTable');
+            if (dsaTable) {
+                try {
+                    var dsaClone = dsaTable.cloneNode(true);
+                    dsaClone.classList.remove('dataTable');
+                    dsaClone.removeAttribute('role');
+
+                    dsaClone.querySelectorAll('.dataTables_empty, .dataTables_info, .dataTables_paginate, .dataTables_filter, .dataTables_length').forEach(function(el) {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    });
+
+                    var ws = XLSX.utils.table_to_sheet(dsaClone);
+                    XLSX.utils.book_append_sheet(wb, ws, 'DSA_Certification');
+                    sheetsAdded++;
+                } catch (error) {
+                    errors.push('DSA table: ' + error.message);
+                }
+            }
+
+            if (sheetsAdded === 0) {
+                alert('No data found to export.');
+                return;
+            }
+
+            var now = new Date();
+            var timestamp = now.getFullYear() + '-' +
+                           String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                           String(now.getDate()).padStart(2, '0') + '_' +
+                           String(now.getHours()).padStart(2, '0') + '-' +
+                           String(now.getMinutes()).padStart(2, '0');
+
+            var filename = 'AU_Personnel_Report_' + timestamp + '.xlsx';
+            XLSX.writeFile(wb, filename);
+
+            var msg = '✓ Export completed!\n\nFile: ' + filename + '\nSheets: ' + sheetsAdded;
+            if (errors.length > 0) {
+                msg += '\n\nWarnings:\n' + errors.join('\n');
+            }
+            alert(msg);
+        } catch (error) {
+            console.error('Export error:', error);
+            alert('Export error: ' + error.message);
+        }
+    }
+
+    // ============================================================
+    // INITIALIZATION
+    // ============================================================
+    (function() {
+        updateExpandAllButton();
+
+        function setupExportButton() {
+            var exportBtn = document.getElementById('exportAllBtn');
+            if (exportBtn) {
+                var newBtn = exportBtn.cloneNode(true);
+                exportBtn.parentNode.replaceChild(newBtn, exportBtn);
+
+                newBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    exportToExcel();
+                });
+            }
+        }
+
+        setupExportButton();
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupExportButton);
+        }
+        window.addEventListener('load', setupExportButton);
+
+        if (typeof $ !== 'undefined' && $.fn.DataTable) {
+            document.querySelectorAll('.personnel-table').forEach(function(table) {
+                const parentMeetingBody = table.closest('.meeting-body');
+                if (!parentMeetingBody || parentMeetingBody.classList.contains('show')) {
+                    initDataTable(table);
+                }
+            });
+
+            const dsaBody = document.getElementById('meeting-body-dsa');
+            if (dsaBody && dsaBody.classList.contains('show')) {
+                initDsaDataTable();
+            }
+        }
+    })();
+</script>
+{% endblock %}

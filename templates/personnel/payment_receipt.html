@@ -1,0 +1,191 @@
+<!-- templates/personnel/payment_receipt.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% load personnel_extras %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Receipt Header -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="fw-bold">PAYMENT RECEIPT</h2>
+            <h4 class="text-muted">{{ meeting.name|default:"Meeting" }}</h4>
+            <p><strong>Location:</strong> {{ meeting.location|default:"N/A" }} &nbsp;|&nbsp; <strong>Dates:</strong> {{ meeting.start_date|date:"d M Y" }} – {{ meeting.end_date|date:"d M Y" }}</p>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-receipt"></i> Payment Details</h4>
+                    <span class="badge bg-{{ status_badge_class|get_item:payment.payment_status }} fs-6">
+                        {{ payment.get_payment_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+
+                    <!-- ========== PAYMENT SUMMARY ========== -->
+                    <div class="row g-3">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Role Type</label>
+                                <p class="fs-5">{{ payment.get_role_type_display }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Daily Rate</label>
+                                <p class="fs-5">{{ payment.currency }} {{ payment.daily_rate|floatformat:2 }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Days Worked</label>
+                                <p class="fs-5">{{ payment.days_worked }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Total Base</label>
+                                <p class="fs-5">{{ payment.currency }} {{ payment.total_base|floatformat:2 }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Per Diem Rate</label>
+                                <p class="fs-5">
+                                    {{ payment.currency }} 
+                                    {% if payment.per_diem_rate %}
+                                        {{ payment.per_diem_rate|floatformat:2 }}
+                                    {% else %}
+                                        {% if payment.days_worked > 0 %}
+                                            {{ payment.per_diem|divide:payment.days_worked|floatformat:2 }}
+                                        {% else %}
+                                            {{ payment.per_diem|floatformat:2 }}
+                                        {% endif %}
+                                    {% endif %}
+                                </p>
+                                <small class="text-muted">Per day</small>
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Per Diem Total</label>
+                                <p class="fs-5 fw-bold text-success">
+                                    {{ payment.currency }} {{ payment.per_diem|floatformat:2 }}
+                                </p>
+                                <small class="text-muted">
+                                    {% if payment.per_diem_rate %}
+                                        {{ payment.currency }} {{ payment.per_diem_rate|floatformat:2 }} × {{ payment.days_worked }} days
+                                    {% else %}
+                                        {% if payment.days_worked > 0 %}
+                                            {{ payment.currency }} {{ payment.per_diem|divide:payment.days_worked|floatformat:2 }} × {{ payment.days_worked }} days
+                                        {% else %}
+                                            {{ payment.currency }} {{ payment.per_diem|floatformat:2 }} total
+                                        {% endif %}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Travel Allowance</label>
+                                <p class="fs-5">{{ payment.currency }} {{ payment.travel_allowance|floatformat:2 }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Accommodation Allowance</label>
+                                <p class="fs-5">{{ payment.currency }} {{ payment.accommodation_allowance|floatformat:2 }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Special Allowance</label>
+                                <p class="fs-5">{{ payment.currency }} {{ payment.special_allowance|floatformat:2 }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Subtotal</label>
+                                <p class="fs-5">{{ payment.currency }} {{ payment.subtotal|floatformat:2 }}</p>
+                            </div>
+                            <div class="mb-3 border-bottom pb-2">
+                                <label class="fw-bold text-muted small text-uppercase">Total Amount</label>
+                                <p class="fs-3 fw-bold text-primary">{{ payment.currency }} {{ payment.subtotal|floatformat:2 }}</p>
+                                <small class="text-muted">No tax applied</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-muted small text-uppercase">Currency</label>
+                                <p class="fs-5">{{ payment.currency }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- ========== PERSONNEL INFO ========== -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-user"></i> Personnel</h5>
+                            <p><strong>Name:</strong> {{ personnel.full_name }}</p>
+                            <p><strong>Nationality:</strong> {{ personnel.nationality }}</p>
+                            <p><strong>Role:</strong> {{ personnel.get_personnel_type_display }}</p>
+                            <p><strong>Designation:</strong> {{ personnel.designation|default:"-" }}</p>
+                            <p><strong>Email:</strong> {{ personnel.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-calendar-alt"></i> Meeting</h5>
+                            <p><strong>Name:</strong> {{ meeting.name|default:"N/A" }}</p>
+                            <p><strong>Location:</strong> {{ meeting.location|default:"N/A" }}</p>
+                            <p><strong>Start Date:</strong> {{ meeting.start_date|date:"d M Y" }}</p>
+                            <p><strong>End Date:</strong> {{ meeting.end_date|date:"d M Y" }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- ========== ADDITIONAL INFO ========== -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-info-circle"></i> Payment Details</h5>
+                            <p><strong>Payment Reference:</strong> {{ payment.payment_reference|default:"Not assigned" }}</p>
+                            {% if payment.finance_submission_date %}
+                            <p><strong>Submitted to Finance:</strong> {{ payment.finance_submission_date|date:"d M Y H:i" }}</p>
+                            {% endif %}
+                            {% if payment.payment_date %}
+                            <p><strong>Payment Date:</strong> {{ payment.payment_date|date:"d M Y" }}</p>
+                            {% endif %}
+                            <p><strong>Processed By:</strong> {{ payment.processed_by|default:"Not processed" }}</p>
+                            <p><strong>Notes:</strong> {{ payment.notes|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-clock"></i> Timestamps</h5>
+                            <p><strong>Created:</strong> {{ payment.created_at|date:"d M Y H:i" }}</p>
+                            <p><strong>Last Updated:</strong> {{ payment.updated_at|date:"d M Y H:i" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- ========== ACTION BUTTONS ========== -->
+                    <div class="mt-4 d-flex flex-wrap gap-2">
+                        <a href="{% url 'personnel-detail' personnel.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Personnel
+                        </a>
+                        <button onclick="window.print()" class="btn btn-primary">
+                            <i class="fas fa-print"></i> Print Receipt
+                        </button>
+                        {% if payment.payment_status == 'pending' %}
+                        <a href="{% url 'send-to-finance' personnel.id %}" class="btn btn-warning">
+                            <i class="fas fa-paper-plane"></i> Send to Finance
+                        </a>
+                        {% endif %}
+                        {% if payment.payment_status == 'submitted_to_finance' %}
+                        <span class="badge bg-info fs-6 p-2">⏳ Awaiting Finance Approval</span>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Payment Summary Card (Total) -->
+            <div class="card mt-4 bg-light border-2 border-primary">
+                <div class="card-body text-center">
+                    <h5 class="text-muted">Total Payment Amount</h5>
+                    <h2 class="fw-bold text-primary">{{ payment.currency }} {{ payment.subtotal|floatformat:2 }}</h2>
+                    <p class="text-muted small">Status: <span class="badge bg-{{ status_badge_class|get_item:payment.payment_status }}">{{ payment.get_payment_status_display }}</span></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

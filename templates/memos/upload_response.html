@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-reply"></i> Upload Response</h4>
+                    <small>Memo: {{ memo.reference_number }} - {{ memo.subject|truncatechars:50 }}</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            Upload the draft response and/or the final signed response.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.response_content.id_for_label }}" class="form-label">Response Content</label>
+                            {{ form.response_content }}
+                            {% if form.response_content.errors %}
+                            <div class="text-danger">{{ form.response_content.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.draft_response.id_for_label }}" class="form-label">
+                                        <i class="fas fa-file-word"></i> Draft Response
+                                    </label>
+                                    {{ form.draft_response }}
+                                    <small class="text-muted d-block">Upload the draft response (Word, PDF)</small>
+                                    {% if form.draft_response.errors %}
+                                    <div class="text-danger">{{ form.draft_response.errors }}</div>
+                                    {% endif %}
+                                    {% if memo.draft_response %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-success">Current: {{ memo.draft_response.name|cut:"responses/draft/" }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.signed_response.id_for_label }}" class="form-label">
+                                        <i class="fas fa-file-pdf"></i> Signed Response
+                                    </label>
+                                    {{ form.signed_response }}
+                                    <small class="text-muted d-block">Upload the final signed response (PDF)</small>
+                                    {% if form.signed_response.errors %}
+                                    <div class="text-danger">{{ form.signed_response.errors }}</div>
+                                    {% endif %}
+                                    {% if memo.signed_response %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-success">Current: {{ memo.signed_response.name|cut:"responses/signed/" }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'memo-detail' memo.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload Response
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 style="color:#1B5E20;">{{ meeting.name }}</h2>
+      <p class="text-muted mb-0">
+        {{ meeting.location }} · {{ meeting.start_date }} → {{ meeting.end_date }}
+      </p>
+      <small>Logged in as {{ personnel.full_name }} ({{ assignment.get_role_display }})</small>
+    </div>
+    <div class="d-flex gap-2">
+      {% comment %} <a href="{% url 'change-password' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-key"></i> Change Password
+      </a> {% endcomment %}
+      <a href="{% url 'change-password' %}"
+        class="btn"
+        style="border:1px solid #1B5E20; color:#1B5E20; background:transparent; font-weight:600;"
+        onmouseover="this.style.background='#1B5E20'; this.style.color='#fff';"
+        onmouseout="this.style.background='transparent'; this.style.color='#1B5E20';">
+            <i class="fas fa-key me-1"></i> Change Password
+        </a>
+      {% comment %} <a href="{% url 'logout' %}" class="btn btn-outline-secondary">Log out</a> {% endcomment %}
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5>{{ total_uploaded }} / {{ total_required }}</h5>
+          <small>Documents uploaded</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-body">
+          {% if has_all %}
+            <span class="badge bg-success">All documents uploaded</span>
+          {% else %}
+            <strong>Missing:</strong> {{ missing|join:", " }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h4>Your Documents</h4>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Document</th>
+        <th>Status</th>
+        <th>Uploaded</th>
+        <th>Verified</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.order }}</td>
+          <td>{{ row.display_name }}</td>
+          <td>
+            {% if row.uploaded %}
+              <span class="badge bg-info">Uploaded</span>
+            {% else %}
+              <span class="badge bg-secondary">Pending</span>
+            {% endif %}
+          </td>
+          <td>{{ row.upload_date|default:"—" }}</td>
+          <td>
+            {% if row.verified %}
+              <span class="badge bg-success">Verified</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'my-meeting-upload' row.doc_type %}" class="btn btn-sm btn-primary">
+              {% if row.uploaded %}Replace{% else %}Upload{% endif %}
+            </a>
+            {% if row.uploaded %}
+              <a href="{% url 'view-document' row.document.id %}" class="btn btn-sm btn-outline-secondary" target="_blank">View</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

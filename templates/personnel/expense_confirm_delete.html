@@ -1,0 +1,182 @@
+<!-- templates/personnel/expense_confirm_delete.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --au-green: #1B5E20;
+        --au-gold: #F7C608;
+        --au-red: #952038;
+    }
+    .card-header-au {
+        background-color: var(--au-red);
+        color: #fff;
+        border-bottom: 3px solid var(--au-gold);
+    }
+    .expense-summary {
+        background: #f8f9fa;
+        border-left: 4px solid var(--au-red);
+        padding: 1rem 1.25rem;
+        border-radius: .25rem;
+    }
+    .expense-summary dt {
+        color: #6c757d;
+        font-weight: 600;
+        font-size: .85rem;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+    .expense-summary dd {
+        margin-bottom: .5rem;
+        font-size: 1rem;
+    }
+    .amount-highlight {
+        color: var(--au-red);
+        font-weight: 700;
+        font-size: 1.35rem;
+    }
+    .btn-danger-au {
+        background-color: var(--au-red);
+        border-color: var(--au-red);
+        color: #fff;
+    }
+    .btn-danger-au:hover {
+        background-color: #7a1a2e;
+        border-color: #7a1a2e;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="card shadow-sm">
+                <div class="card-header card-header-au">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Confirm Delete — Expense Record
+                    </h4>
+                </div>
+
+                <div class="card-body">
+
+                    <p class="lead mb-3">
+                        Are you sure you want to delete this expense record?
+                        <strong class="text-danger">This action cannot be undone.</strong>
+                    </p>
+
+                    <!-- ============================================================ -->
+                    <!-- EXPENSE SUMMARY                                              -->
+                    <!-- ============================================================ -->
+                    <div class="expense-summary mb-4">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Personnel</dt>
+                            <dd class="col-sm-8">
+                                <strong>{{ expense.personnel.full_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ expense.personnel.email }}</small>
+                            </dd>
+
+                            <dt class="col-sm-4">Meeting</dt>
+                            <dd class="col-sm-8">
+                                {{ expense.meeting.name|default:"—" }}
+                            </dd>
+
+                            <dt class="col-sm-4">Country</dt>
+                            <dd class="col-sm-8">{{ expense.country|default:"—" }}</dd>
+
+                            <dt class="col-sm-4">Category</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-secondary">
+                                    {{ expense.get_category_display }}
+                                </span>
+                            </dd>
+
+                            <dt class="col-sm-4">Number of Days</dt>
+                            <dd class="col-sm-8">{{ expense.number_of_days }}</dd>
+
+                            <dt class="col-sm-4">Currency</dt>
+                            <dd class="col-sm-8">{{ expense.currency }}</dd>
+
+                            <dt class="col-sm-4">Grand Total</dt>
+                            <dd class="col-sm-8">
+                                <span class="amount-highlight">
+                                    {{ expense.currency }} {{ expense.grand_total }}
+                                </span>
+                            </dd>
+
+                            <dt class="col-sm-4">Created</dt>
+                            <dd class="col-sm-8">
+                                {{ expense.created_at|date:"M d, Y H:i" }}
+                                {% if expense.created_by %}
+                                    by {{ expense.created_by.username }}
+                                {% endif %}
+                            </dd>
+
+                            <dt class="col-sm-4">Locked</dt>
+                            <dd class="col-sm-8">
+                                {% if expense.is_locked %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-lock"></i> Locked
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-lock-open"></i> Unlocked
+                                    </span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+
+                    {% if expense.is_locked and not request.user.is_staff %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-lock me-1"></i>
+                        This record is locked. Only an administrator can delete it.
+                    </div>
+                    {% endif %}
+
+                    <!-- ============================================================ -->
+                    <!-- ACTIONS                                                      -->
+                    <!-- ============================================================ -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if expense.is_locked and not request.user.is_staff %}
+                                <button type="button" class="btn btn-danger-au" disabled>
+                                    <i class="fas fa-trash"></i> Cannot Delete (Locked)
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-danger-au">
+                                    <i class="fas fa-trash"></i> Yes, Delete This Record
+                                </button>
+                            {% endif %}
+
+                            <a href="{% url 'expense-detail' expense.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+
+                            <a href="{% url 'expense-list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-list"></i> Back to Expenses
+                            </a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

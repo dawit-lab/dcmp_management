@@ -1,0 +1,61 @@
+<!-- templates/emails/document_reminder.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #dc3545; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f8f9fa; }
+        .missing-docs { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0; }
+        .action-btn { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>⚠️ Missing Documents Reminder</h2>
+        </div>
+        <div class="content">
+            <p>Dear <strong>{{ personnel.full_name }}</strong>,</p>
+            
+            <p>We have noticed that your document submission is incomplete for your role as 
+            <strong>{{ personnel.get_personnel_type_display }}</strong>.</p>
+            
+            <div class="missing-docs">
+                <h4>❌ Missing Documents:</h4>
+                <ul>
+                    {% for doc in missing_docs %}
+                    <li><strong>{{ doc|title }}</strong></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <div style="background: #d1ecf1; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <strong>📌 Please take action:</strong>
+                <p>1. Login to the DCMP portal</p>
+                <p>2. Upload the missing documents</p>
+                <p>3. Verify your submission</p>
+            </div>
+            
+            <p style="margin-top: 20px;">
+                {% comment %} <a href="{{ upload_link }}"
+                    style="background-color:#007bff; color:#ffffff !important; padding:10px 20px;
+                            text-decoration:none; border-radius:5px; display:inline-block;
+                            font-family:Arial, sans-serif; font-weight:bold;">
+                    Upload Documents Now
+                    </a> {% endcomment %}
+            </p>
+            
+            <p style="margin-top: 20px;">
+                Best regards,<br>
+                <strong>DCMP Team</strong>
+            </p>
+        </div>
+        <div class="footer">
+            This is an automated reminder. Please ensure all documents are submitted.
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5 text-center" style="max-width:560px;">
+  <div class="card shadow-sm">
+    <div class="card-body p-5">
+
+      {% if response == 'yes' %}
+        <div style="font-size:64px; color:#1B5E20;">✓</div>
+        <h2 style="color:#1B5E20;">Thank you!</h2>
+        <p class="lead">
+          Your availability has been recorded.
+        </p>
+        <p class="text-muted">
+          You will receive a separate email with your login credentials
+          once the administrator approves your participation.
+        </p>
+      {% else %}
+        <div style="font-size:64px; color:#952038;">✗</div>
+        <h2>Response recorded</h2>
+        <p class="lead">
+          Thank you for letting us know you are not available.
+        </p>
+        <p class="text-muted">
+          No further action is required on your part.
+        </p>
+      {% endif %}
+
+      <hr>
+
+      <p class="small text-muted mb-0">
+        Meeting:
+        <strong>{{ availability_request.meeting.name }}</strong><br>
+        {{ availability_request.meeting.location }}
+        ({{ availability_request.meeting.start_date }} – {{ availability_request.meeting.end_date }})
+      </p>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

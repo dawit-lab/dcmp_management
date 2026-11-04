@@ -1,0 +1,203 @@
+<!-- templates/personnel/expense_detail.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- ============================================================ -->
+    <!-- HEADER -->
+    <!-- ============================================================ -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="mb-0">
+            💼 Expense Detail
+            {% if expense.is_locked %}
+                <span class="badge bg-danger">🔒 Locked</span>
+            {% endif %}
+        </h2>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'expense-edit' expense.id %}" class="btn btn-outline-primary">
+                ✏️ Edit
+            </a>
+            {% if user.is_staff %}
+                <a href="{% url 'expense-toggle-lock' expense.id %}" class="btn btn-outline-warning">
+                    {% if expense.is_locked %}🔓 Unlock{% else %}🔒 Lock{% endif %}
+                </a>
+            {% endif %}
+            <a href="{% url 'expense-delete' expense.id %}" class="btn btn-outline-danger">
+                🗑 Delete
+            </a>
+            <a href="{% url 'expense-list' %}" class="btn btn-outline-secondary">
+                ← Back
+            </a>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PERSONNEL + ASSIGNMENT CARDS -->
+    <!-- ============================================================ -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold bg-light">👤 Personnel</div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Name:</strong> {{ expense.personnel.full_name }}</p>
+                    <p class="mb-1"><strong>Profession:</strong> {{ expense.personnel.get_profession_display }}</p>
+                    <p class="mb-1"><strong>Employment:</strong> {{ expense.personnel.get_employment_basis_display }}</p>
+                    <p class="mb-1"><strong>Meeting:</strong> {{ expense.meeting.name|default:"—" }}</p>
+                    <p class="mb-0"><strong>Country:</strong> {{ expense.country|default:"—" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold bg-light">📋 Assignment</div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Category:</strong> {{ expense.get_category_display }}</p>
+                    <p class="mb-1"><strong>Currency:</strong> {{ expense.get_currency_display }}</p>
+                    <p class="mb-1">
+                        <strong>Status:</strong>
+                        {% if expense.is_locked %}
+                            <span class="badge bg-danger">🔒 Locked</span>
+                        {% else %}
+                            <span class="badge bg-success">🔓 Open</span>
+                        {% endif %}
+                    </p>
+                    <p class="mb-0"><strong>Created:</strong> {{ expense.created_at|date:"Y-m-d H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- BREAKDOWN CARD -->
+    <!-- ============================================================ -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header fw-bold bg-light d-flex justify-content-between align-items-center">
+            <span>🧾 Breakdown</span>
+            <span class="badge bg-primary">
+                📆 {{ expense.number_of_days|floatformat:"-2" }} day{{ expense.number_of_days|floatformat:"-2"|pluralize }}
+            </span>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-end">Per Day</th>
+                        <th class="text-end">Days</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- ---------- RATE-BASED ITEMS ---------- -->
+                    <tr>
+                        <td>💰 Salary</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.salary|floatformat:2 }}</td>
+                        <td class="text-end">{{ expense.number_of_days|floatformat:"-2" }}</td>
+                        <td class="text-end">
+                            <strong>{{ expense.currency }} {{ expense.salary_total|floatformat:2 }}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>📅 DSA</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.dsa|floatformat:2 }}</td>
+                        <td class="text-end">{{ expense.number_of_days|floatformat:"-2" }}</td>
+                        <td class="text-end">
+                            <strong>{{ expense.currency }} {{ expense.dsa_total|floatformat:2 }}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>🚆 Travel Fee</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.travel_fee|floatformat:2 }}</td>
+                        <td class="text-end">{{ expense.number_of_days|floatformat:"-2" }}</td>
+                        <td class="text-end">
+                            <strong>{{ expense.currency }} {{ expense.travel_fee_total|floatformat:2 }}</strong>
+                        </td>
+                    </tr>
+
+                    <!-- Subtotal for rate-based -->
+                    <tr class="table-light">
+                        <td colspan="3" class="text-end fw-bold">
+                            Subtotal — rate-based × {{ expense.number_of_days|floatformat:"-2" }} days
+                        </td>
+                        <td class="text-end fw-bold">
+                            {{ expense.currency }} {{ expense.rate_based_total|floatformat:2 }}
+                        </td>
+                    </tr>
+
+                    <!-- ---------- FLAT ITEMS ---------- -->
+                    <tr>
+                        <td>⏳ Standby</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.standby_days|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>🛬 Terminal Expenses</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.terminal_expenses|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>🛂 Visa Fees</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.visa_fees|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>✈️ Air Ticket</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.air_ticket|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>📎 Other</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end">{{ expense.currency }} {{ expense.other|floatformat:2 }}</td>
+                    </tr>
+
+                    <!-- Subtotal for flat -->
+                    <tr class="table-light">
+                        <td colspan="3" class="text-end fw-bold">Subtotal — flat amounts</td>
+                        <td class="text-end fw-bold">
+                            {{ expense.currency }} {{ expense.flat_total|floatformat:2 }}
+                        </td>
+                    </tr>
+
+                    <!-- ---------- GRAND TOTAL ---------- -->
+                    <tr class="table-primary">
+                        <th colspan="3" class="h5 mb-0">GRAND TOTAL</th>
+                        <th class="text-end h5 mb-0">
+                            {{ expense.currency }} {{ expense.grand_total|floatformat:2 }}
+                        </th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- FORMULA STRIP (optional, human-readable summary) -->
+    <!-- ============================================================ -->
+    <div class="alert alert-secondary mt-3 small mb-0">
+        <i class="fas fa-calculator"></i>
+        <strong>Formula:</strong>
+        (
+        {{ expense.salary|floatformat:2 }}
+        + {{ expense.dsa|floatformat:2 }}
+        + {{ expense.travel_fee|floatformat:2 }}
+        ) × {{ expense.number_of_days|floatformat:"-2" }}
+        = <strong>{{ expense.currency }} {{ expense.rate_based_total|floatformat:2 }}</strong>
+        &nbsp;+&nbsp; flat
+        <strong>{{ expense.currency }} {{ expense.flat_total|floatformat:2 }}</strong>
+        &nbsp;=&nbsp;
+        <strong class="text-primary">
+            {{ expense.currency }} {{ expense.grand_total|floatformat:2 }}
+        </strong>
+    </div>
+
+</div>
+{% endblock %}

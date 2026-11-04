@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2 style="color:#1B5E20;">{{ meeting.name }}</h2>
+  <p class="text-muted">{{ meeting.location }} · {{ meeting.start_date }} – {{ meeting.end_date }}</p>
+
+  {% for label, group in "Pending|pending,Available — awaiting approval|available,Approved|approved,Declined|declined"|split:";" %}
+  {% endfor %}
+
+  <h4>Pending response ({{ pending|length }})</h4>
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>Type</th><th>Sent</th><th></th></tr></thead>
+    <tbody>
+      {% for ar in pending %}
+      <tr>
+        <td>{{ ar.personnel.full_name }}</td>
+        <td>{{ ar.personnel.get_personnel_type_display }}</td>
+        <td>{{ ar.invitation_sent_at|default:"—" }}</td>
+        <td>
+          <form method="post" action="{% url 'request-availability' ar.personnel.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-warning">Resend invitation</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">None</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h4 class="mt-4">Available — awaiting approval ({{ available|length }})</h4>
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>Type</th><th>Responded</th><th></th></tr></thead>
+    <tbody>
+      {% for ar in available %}
+      <tr>
+        <td>{{ ar.personnel.full_name }}</td>
+        <td>{{ ar.personnel.get_personnel_type_display }}</td>
+        <td>{{ ar.responded_at }}</td>
+        <td>
+          <form method="post" action="{% url 'approve-availability' ar.id %}" style="display:inline;"
+                onsubmit="return confirm('Approve and send credentials to {{ ar.personnel.email }}?');">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-success">Approve &amp; send credentials</button>
+          </form>
+          <form method="post" action="{% url 'decline-availability' ar.id %}" style="display:inline;"
+                onsubmit="return confirm('Mark as declined?');">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-danger">Decline</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">None</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h4 class="mt-4">Approved ({{ approved|length }})</h4>
+  <table class="table table-sm">
+    <thead><tr><th>Name</th><th>Type</th><th>Username</th><th>Approved</th></tr></thead>
+    <tbody>
+      {% for ar in approved %}
+      <tr>
+        <td>{{ ar.personnel.full_name }}</td>
+        <td>{{ ar.personnel.get_personnel_type_display }}</td>
+        <td>{{ ar.assignment.username_for_meeting }}</td>
+        <td>{{ ar.approved_at }}</td>
+      </tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">None</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h4 class="mt-4">Declined ({{ declined|length }})</h4>
+  <ul>
+    {% for ar in declined %}
+    <li>{{ ar.personnel.full_name }} — {{ ar.responded_at|default:"—" }}</li>
+    {% empty %}<li class="text-muted">None</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}
