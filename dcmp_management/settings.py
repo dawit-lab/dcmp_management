@@ -232,6 +232,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 # Logging
+os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
